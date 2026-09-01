@@ -1,0 +1,3 @@
+<!-- props: id -->
+<button :disabled="!!$store.library.shows[id]" @click="$store.library.add(id)"
+  x-text="$store.library.shows[id] ? 'Added' : 'Add'"></button>

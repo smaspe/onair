@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -52 104 104">
+  <!-- The light, and the signal leaving it. The plaque of the full mark says ON AIR; at
+       this size the words are unreadable, so only the broadcast survives. -->
+  <circle cx="0" cy="0" r="11" fill="#46b9aa"/>
+  <g fill="none" stroke="#46b9aa" stroke-width="8" stroke-linecap="round">
+    <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>
+    <path d="M25.7 -30.6 A40 40 0 0 1 25.7 30.6" opacity="0.55"/>
+  </g>
+  <g fill="none" stroke="#46b9aa" stroke-width="8" stroke-linecap="round" transform="rotate(180)">
+    <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>
+    <path d="M25.7 -30.6 A40 40 0 0 1 25.7 30.6" opacity="0.55"/>
+  </g>
+</svg>

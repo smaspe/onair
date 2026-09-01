@@ -1,0 +1,11 @@
+{
+  "name": "onair",
+  "compatibility_date": "2026-09-01",
+
+  // No "main" key: nothing runs on the server yet, so this Worker only serves files.
+  // The TMDB proxy adds a script and a "run_worker_first" route for /api/*.
+  "assets": {
+    "directory": ".",
+    "not_found_handling": "404-page"
+  }
+}

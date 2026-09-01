@@ -1,0 +1,63 @@
+<!-- props: show, airDates -->
+<article class="show">
+  <div class="row">
+    <img :src="$display.posterUrl(show.posterPath)" alt="">
+    <div class="info">
+      <div class="title">
+        <span x-text="show.name"></span>
+        <span class="dim" x-text="show.network"></span>
+        <span class="tag" x-show="$display.isEnded(show)">finished</span>
+        <span class="rating" :class="show.rating && 'rated'">
+          ★
+          <select aria-label="What you make of it, out of 10"
+            @change="$store.library.rate(show, Number($event.target.value))">
+            <option value="0" :selected="!show.rating">–</option>
+            <template x-for="score in 10" :key="score">
+              <option :value="score" :selected="show.rating === score" x-text="score"></option>
+            </template>
+          </select>
+        </span>
+      </div>
+
+      <div class="progress">
+        <span class="entry" x-show="show.currentEpisode">
+          <span class="dim">watched</span>
+          <span class="code" x-text="$display.watchedCode(show)"></span>
+          <span class="episode-title" x-text="$display.watchedTitle(show)"></span>
+          <span class="end">
+            <button class="icon" @click="$store.library.unwatch(show)"
+              title="I have not watched this one">✗</button>
+          </span>
+        </span>
+
+        <span class="entry" x-show="$display.episodesBehind(show)">
+          <span class="dim">next up</span>
+          <span class="code" x-text="$display.nextCode(show)"></span>
+          <span class="episode-title" x-text="$display.nextTitle(show)"></span>
+          <span class="end">
+            <button class="icon" @click="$store.library.watchNext(show)"
+              title="I watched this one">✓</button>
+            <button class="icon double" x-show="$display.seasonLeft(show) > 1"
+              @click="$store.library.watchSeason(show)"
+              :title="`I watched the rest of this season — ${$display.seasonLeft(show)} episodes`">✓✓</button>
+            <span class="behind" x-text="`${$display.episodesBehind(show)} left`"></span>
+            <button class="icon triple"
+              x-show="$display.episodesBehind(show) > $display.seasonLeft(show)"
+              @click="$store.library.catchUp(show)"
+              :title="`I watched everything that has aired — ${$display.episodesBehind(show)} episodes`">✓✓✓</button>
+          </span>
+        </span>
+
+        <span class="dim" x-show="!show.currentEpisode && !$display.episodesBehind(show)">nothing has aired yet</span>
+      </div>
+    </div>
+
+    <a class="next" href="#upcoming" x-show="airDates && $display.airing(show)"
+      :class="$display.airing(show)?.soon && 'soon'" title="Every episode still to air"
+      x-text="$display.airing(show)?.label"></a>
+
+    <div class="actions">
+      <button class="remove" title="Drop" @click="$store.library.drop(show)">✕</button>
+    </div>
+  </div>
+</article>

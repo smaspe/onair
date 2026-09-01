@@ -1,0 +1,7 @@
+# The repository root is the site, so anything that is not part of the site is named here.
+*.md
+architecture/
+wrangler.jsonc
+.assetsignore
+.gitignore
+.git/

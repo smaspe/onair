@@ -1,0 +1,5 @@
+<!-- props: row (anything with vote and votes) -->
+<span class="stars" x-show="row.votes">
+  <span x-text="`★ ${row.vote.toFixed(1)}`"></span>
+  <small x-text="row.votes"></small>
+</span>

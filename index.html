@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONAIR — track what you watch</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="styles.css">
+<style>[x-cloak]{ display:none !important; }</style>
+<script type="module" src="js/app.js"></script>
+</head>
+<body x-data x-cloak>
+
+<header x-data="apiKey">
+  <!-- The mark draws itself in currentColor, so the accent has one home in the stylesheet.
+       The words next to it are the wordmark, which is why this one carries none. -->
+  <h1>
+    <svg class="mark" viewBox="-48 -48 96 96" aria-hidden="true">
+      <circle r="11" fill="currentColor"/>
+      <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+        <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>
+        <path d="M25.7 -30.6 A40 40 0 0 1 25.7 30.6" opacity="0.55"/>
+      </g>
+      <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"
+         transform="rotate(180)">
+        <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>
+        <path d="M25.7 -30.6 A40 40 0 0 1 25.7 30.6" opacity="0.55"/>
+      </g>
+    </svg>
+    ONAIR
+  </h1>
+
+  <!-- The results hang under the search bar, so a search never leaves the view. -->
+  <form class="search" x-data="search" @submit.prevent="run()"
+    @click.outside="close()" @keydown.escape.window="close()">
+    <input type="search" x-model="query" aria-label="Search for a show to add"
+      placeholder="Search for a show to add…" autocomplete="off">
+    <button>Search</button>
+
+    <div class="sheet" x-show="results.length || note">
+      <p class="empty" x-show="!results.length" x-text="note"></p>
+
+      <!-- A tag names a file in parts/, and its x-data is what the file reads. -->
+      <template x-for="result in results" :key="result.id">
+        <search-row x-data="{ row: result }"></search-row>
+      </template>
+    </div>
+  </form>
+
+  <button @click="open = !open">API key</button>
+
+  <form id="keyForm" x-show="open" @submit.prevent="save()">
+    <label for="key">TMDB API key (v3 auth) — <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">get one</a></label>
+    <input type="password" id="key" x-model="value" placeholder="paste key here">
+    <button>Save</button>
+  </form>
+</header>
+
+<!-- Each count reads the list its view renders. -->
+<nav>
+  <a class="tab" href="#shows">shows <span class="count" x-text="$store.library.trackedCount"></span></a>
+  <a class="tab" href="#upcoming">upcoming <span class="count" x-text="$store.library.upcomingCount"></span></a>
+  <a class="tab" href="#recommended">recommended <span class="count" x-text="$store.recommended.visible.length || ''"></span></a>
+  <a class="tab" href="#dropped">dropped <span class="count" x-text="$store.library.dropped.length"></span></a>
+</nav>
+
+<main>
+  <div class="view" id="shows">
+    <p class="empty" x-show="!$store.library.sections.length">No shows yet. Search above to start tracking one.</p>
+
+    <!-- The browser folds a section; the model only says which one starts folded. -->
+    <template x-for="section in $store.library.sections" :key="section.key">
+      <details class="group" x-init="$el.open = !section.collapsible">
+        <summary>
+          <h2>
+            <span x-text="section.title"></span>
+            <span class="count" x-text="section.shows.length"></span>
+          </h2>
+        </summary>
+
+        <!-- parts/show-card.html reads `show` and `airDates`; card() reads the record back
+             from the store, so what the card changes is the record and not a copy. -->
+        <div class="cards">
+          <template x-for="show in section.shows" :key="show.id">
+            <show-card x-data="card(show.id, section.airDates)"></show-card>
+          </template>
+        </div>
+      </details>
+    </template>
+  </div>
+
+  <div class="view" id="upcoming">
+    <p class="empty" x-show="!$store.library.months.length">Nothing scheduled. Refresh the air dates, or add a show that is still running.</p>
+
+    <template x-for="month in $store.library.months" :key="month.title">
+      <section>
+        <h2 x-text="month.title"></h2>
+        <template x-for="episode in month.episodes" :key="episode.key">
+          <div class="ep">
+            <span class="date" x-text="$display.formatDate(episode.airDate)"></span>
+            <span class="code" x-text="$display.code(episode.season, episode.episode)"></span>
+            <span class="label" x-text="episode.label"></span>
+            <span class="episode-title" x-text="episode.title"></span>
+            <span class="dim" x-text="$display.airsIn(episode)"></span>
+          </div>
+        </template>
+      </section>
+    </template>
+  </div>
+
+  <!-- Suggestions, each weighted by what you make of the show that suggests it. -->
+  <div class="view" id="recommended">
+    <p class="empty" x-show="$store.recommended.note" x-text="$store.recommended.note"></p>
+
+    <section x-show="$store.recommended.items.length">
+      <h2>
+        <span>from the shows you watch</span>
+        <button class="icon" @click="$store.recommended.reload($store.library.shows)"
+          title="Look again">↻</button>
+      </h2>
+
+      <div class="filters">
+        <select x-model="$store.recommended.genre">
+          <option value="">every genre</option>
+          <template x-for="genre in $store.recommended.genres" :key="genre">
+            <option :value="genre" x-text="genre"></option>
+          </template>
+        </select>
+
+        <select x-model.number="$store.recommended.minRating">
+          <option value="0">any rating</option>
+          <template x-for="score in [6, 7, 8, 9]" :key="score">
+            <option :value="score" x-text="`★ ${score} and up`"></option>
+          </template>
+        </select>
+
+        <span class="dim" x-text="`${$store.recommended.visible.length} of ${$store.recommended.items.length}`"></span>
+      </div>
+
+      <p class="empty" x-show="!$store.recommended.visible.length">Nothing matches those filters.</p>
+
+      <!-- parts/suggestion-card.html reads `row`, as parts/search-row.html does. -->
+      <template x-for="item in $store.recommended.visible" :key="item.id">
+        <suggestion-card x-data="{ row: item }"></suggestion-card>
+      </template>
+    </section>
+  </div>
+
+  <!-- parts/dropped-card.html reads `show`, and reaches the delete guard in this scope. -->
+  <div class="view" id="dropped" x-data="droppedList" @hashchange.window="pending = null">
+    <p class="empty" x-show="!$store.library.dropped.length">Nothing dropped.</p>
+
+    <div class="cards">
+      <template x-for="show in $store.library.dropped" :key="show.id">
+        <dropped-card x-data="card(show.id)"></dropped-card>
+      </template>
+    </div>
+  </div>
+</main>
+
+<footer x-data="transfer">
+  <span>Stored in this browser. Only the requests to TMDB leave your device.</span>
+
+  <span class="dim" x-text="note"></span>
+
+  <span class="actions">
+    <button @click="save()" title="Write what you watch to a file">export</button>
+    <button @click="$refs.file.click()"
+      title="Read a file back, in place of what this browser tracks">import</button>
+    <input type="file" accept="application/json,.json" x-ref="file" hidden @change="open($event)">
+    <button @click="$store.library.refresh()">Refresh air dates</button>
+  </span>
+</footer>
+
+</body>
+</html>
