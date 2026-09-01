@@ -1,5 +1,4 @@
 const WATCHED_KEY = "onair.watched";
-const API_KEY_KEY = "onair.tmdbKey";
 
 // The whole of what is worth keeping: which episode you are on, what you make of the show,
 // and whether you dropped it. Everything else about a show comes from TMDB on load.
@@ -66,7 +65,3 @@ export const importWatched = (text) => {
   localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
   return Object.keys(watched).length;
 };
-
-export const getApiKey = () => localStorage.getItem(API_KEY_KEY) || "";
-
-export const setApiKey = (key) => localStorage.setItem(API_KEY_KEY, key);

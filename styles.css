@@ -60,9 +60,6 @@ h2{
 .sheet .overview{ margin-top:0.35rem; }
 .sheet .empty{ padding:1.25rem 0; font-size:0.85rem; }
 
-#keyForm{ flex-basis:100%; display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-top:0.3rem; font-size:0.85rem; color:var(--dim); }
-#keyForm input{ flex:1; min-width:200px; }
-
 nav{ display:flex; gap:0.4rem; margin:1.25rem 0; }
 .tab{
   padding:0.4rem 0.75rem; border:1px solid var(--border); border-radius:99px;

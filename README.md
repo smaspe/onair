@@ -48,12 +48,17 @@ hosting, the TMDB proxy, the user data and the recommendation formula.
 npx wrangler dev
 ```
 
-Then open <http://localhost:8787> and paste a TMDB API key into the header. From step 2 of the
-roadmap the key moves into the Worker and that form disappears.
+Then open <http://localhost:8787>.
 
-Wrangler routes the way the deployed Worker does, so it is the honest thing to develop
-against. Any other file server works too — ES modules need an `http://` origin, so only
-opening `index.html` from the filesystem fails.
+Wrangler is needed now rather than any file server, because the TMDB key lives in the Worker.
+Put a copy in `.dev.vars`, which git ignores:
+
+```
+TMDB_KEY=your-tmdb-v3-key
+```
+
+The static half still runs from any file server — but the app fetches show data through
+`/api`, so without the Worker nothing loads.
 
 Deployed at <https://onair.smaspe.workers.dev>. See `cloudflare.md`.
 

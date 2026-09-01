@@ -2,6 +2,9 @@
 cloudflare.md
 supabase.md
 
+# The TMDB key, for `wrangler dev`. Cloudflare holds the deployed one as a secret.
+.dev.vars
+
 .DS_Store
 node_modules/
 .wrangler/

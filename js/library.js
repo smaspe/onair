@@ -1,4 +1,4 @@
-import { loadShows, saveShows, getApiKey } from "./storage.js";
+import { loadShows, saveShows } from "./storage.js";
 import { fetchRecord } from "./tmdb.js";
 import {
   allWatched,
@@ -42,8 +42,7 @@ export const library = {
   ready: Promise.resolve(),
 
   init() {
-    if (getApiKey() && Object.keys(this.shows).length)
-      this.ready = this.refresh();
+    if (Object.keys(this.shows).length) this.ready = this.refresh();
   },
 
   save() {

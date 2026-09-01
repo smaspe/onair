@@ -17,7 +17,10 @@ general purpose TMDB mirror:
 - **A fixed list of endpoints.** `/tv/{id}`, `/tv/{id}/season/{n}`, `/search/tv`,
   `/tv/{id}/recommendations`, `/genre/tv/list`. Nothing else is forwarded.
 - **Validated input.** Numeric ids, season numbers in range, a length cap on the query.
-- **Trimmed responses.** Only the fields the client reads. This shrinks the cache too.
+- **Whole responses.** The body is forwarded as it arrives; `js/tmdb.js` already shapes it,
+  and doing that twice would put the same knowledge in two places. Trimming to the fields the
+  client reads would shrink the cache, and is worth doing only if payload size becomes a
+  problem.
 - **CORS limited to the app origin.** This stops another site's JavaScript. It does not stop
   a script, and it is not meant to.
 - **Rate limits by IP**, once the Worker runs on a zone. Those rules run before the Worker,

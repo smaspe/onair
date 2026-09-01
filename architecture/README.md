@@ -2,16 +2,17 @@
 
 Start here.
 
-ONAIR is a static page. Two services will stand behind it, and neither exists yet:
+ONAIR is a static page with two services behind it:
 
 - **The client** renders everything and holds the watch data.
-- **A Cloudflare Worker** serves the page, and later reads TMDB on its behalf.
-- **Supabase** authenticates users and stores the watch data of those who sign in.
+- **A Cloudflare Worker** serves the page and reads TMDB on its behalf.
+- **Supabase** will authenticate users and store the watch data of those who sign in. It does
+  not exist yet.
 
 ```mermaid
 flowchart LR
   browser["Browser<br/>static page"]
-  worker["Cloudflare Worker<br/>the page, then the TMDB proxy"]
+  worker["Cloudflare Worker<br/>the page and the TMDB proxy"]
   supabase[("Supabase<br/>auth + Postgres")]
   tmdb["TMDB API"]
   images["image.tmdb.org"]
@@ -25,8 +26,8 @@ flowchart LR
 
 ## Where things stand
 
-The client keeps the watch data in `localStorage` and calls TMDB directly with a key
-that each user pastes into the header.
+The client keeps the watch data in `localStorage`. Show data comes through the Worker, which
+holds the TMDB key, so nobody needs one of their own.
 
 ## Setting this up for the first time
 

@@ -1,14 +1,13 @@
-import { getApiKey } from "./storage.js";
 import { nextWatched } from "./model/progress.js";
 
-const BASE = "https://api.themoviedb.org/3";
+// The Worker on this origin holds the TMDB key and forwards these paths. Same origin, so
+// no CORS, and no key ever reaches the browser.
+const BASE = "/api";
 // Wide enough to stay sharp on a dense screen: the posters are drawn at most 52px across.
 export const IMG_BASE = "https://image.tmdb.org/t/p/w185";
 
 const get = async (path, params = {}) => {
-  const key = getApiKey();
-  if (!key) throw new Error("no-api-key");
-  const query = new URLSearchParams({ ...params, api_key: key });
+  const query = new URLSearchParams(params);
   const response = await fetch(`${BASE}${path}?${query}`);
   if (!response.ok) throw new Error("tmdb-error-" + response.status);
   return response.json();
@@ -46,7 +45,7 @@ const withSize = async (row) => {
 
 export const searchTv = async (query) => {
   const [data, names] = await Promise.all([
-    get("/search/tv", { query, include_adult: "false" }),
+    get("/search/tv", { query }),
     genreNames(),
   ]);
   const rows = (data.results || [])

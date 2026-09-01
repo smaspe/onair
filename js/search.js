@@ -1,4 +1,3 @@
-import { getApiKey } from "./storage.js";
 import { searchTv } from "./tmdb.js";
 
 // The search bar and the sheet of results under it.
@@ -17,9 +16,7 @@ export const search = () => ({
       this.results = await searchTv(query);
       this.note = "No matches.";
     } catch {
-      this.note = getApiKey()
-        ? "Search failed. Check your API key and connection."
-        : "Add your TMDB API key to search.";
+      this.note = "Search failed. Try again.";
     }
   },
 
