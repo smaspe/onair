@@ -7,7 +7,7 @@ export const search = () => ({
   results: [],
   note: "",
 
-  async run(){
+  async run() {
     const query = this.query.trim();
     if (!query) return this.close();
 
@@ -23,8 +23,8 @@ export const search = () => ({
     }
   },
 
-  close(){
+  close() {
     this.results = [];
     this.note = "";
-  }
+  },
 });

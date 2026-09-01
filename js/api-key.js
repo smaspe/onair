@@ -5,11 +5,11 @@ export const apiKey = () => ({
   open: !getApiKey(),
   value: "",
 
-  save(){
+  save() {
     const key = this.value.trim();
     if (!key) return;
     setApiKey(key);
     this.value = "";
     this.open = false;
-  }
+  },
 });

@@ -1,7 +1,7 @@
 <!-- props: row (a ranked suggestion) -->
 <article class="show">
   <div class="row">
-    <img :src="$display.posterUrl(row.posterPath)" alt="" loading="lazy">
+    <img :src="$display.posterUrl(row.posterPath)" alt="" loading="lazy" />
     <div class="info">
       <div class="title">
         <span x-text="row.name"></span>
@@ -9,10 +9,17 @@
       </div>
       <div class="meta">
         <star-rating x-data="{ row }"></star-rating>
-        <span class="dim" x-show="row.genres.length" x-text="row.genres.join(' · ')"></span>
+        <span
+          class="dim"
+          x-show="row.genres.length"
+          x-text="row.genres.join(' · ')"
+        ></span>
         <span class="dim" x-text="`from ${row.from.join(', ')}`"></span>
-        <span class="dim" x-show="row.dropped.length"
-          x-text="`also ${row.dropped.join(', ')}, which you dropped`"></span>
+        <span
+          class="dim"
+          x-show="row.dropped.length"
+          x-text="`also ${row.dropped.join(', ')}, which you dropped`"
+        ></span>
       </div>
       <p class="overview" x-show="row.overview" x-text="row.overview"></p>
     </div>

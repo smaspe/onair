@@ -2,7 +2,7 @@
      font-family="system-ui, -apple-system, Segoe UI, sans-serif">
   <!-- The full mark, for a README, a social card or a landing page. The sign is the
        source and the arcs are what leaves it. Inside the app the header already says
-       ONAIR in text, so the app uses favicon.svg instead. -->
+       ONAIR in text, so the app uses mark.svg instead. -->
   <rect x="-43" y="-17" width="86" height="34" rx="6"
         fill="none" stroke="#46b9aa" stroke-width="4"/>
   <text x="0" y="6" text-anchor="middle" fill="#46b9aa"

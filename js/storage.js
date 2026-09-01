@@ -6,21 +6,38 @@ const API_KEY_KEY = "onair.tmdbKey";
 const WATCHED = ["currentSeason", "currentEpisode", "rating", "dropped"];
 
 // A show before TMDB has answered: enough shape for the model to read.
-const EMPTY = { name: "", network: "", tvStatus: "", seasons: [], episodes: [], upcoming: [], last: null };
-
-const read = key => {
-  try { return JSON.parse(localStorage.getItem(key)) || {}; }
-  catch { return {}; }
+const EMPTY = {
+  name: "",
+  network: "",
+  tvStatus: "",
+  seasons: [],
+  episodes: [],
+  upcoming: [],
+  last: null,
 };
 
-export const loadShows = () => Object.fromEntries(
-  Object.entries(read(WATCHED_KEY)).map(([id, watched]) => [id, { ...EMPTY, id: Number(id), ...watched }])
-);
+const read = (key) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || {};
+  } catch {
+    return {};
+  }
+};
 
-export const saveShows = shows => {
+export const loadShows = () =>
+  Object.fromEntries(
+    Object.entries(read(WATCHED_KEY)).map(([id, watched]) => [
+      id,
+      { ...EMPTY, id: Number(id), ...watched },
+    ]),
+  );
+
+export const saveShows = (shows) => {
   const watched = {};
-  for (const [id, show] of Object.entries(shows)){
-    watched[id] = Object.fromEntries(Object.entries(show).filter(([field]) => WATCHED.includes(field)));
+  for (const [id, show] of Object.entries(shows)) {
+    watched[id] = Object.fromEntries(
+      Object.entries(show).filter(([field]) => WATCHED.includes(field)),
+    );
   }
   localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
 };
@@ -29,18 +46,19 @@ export const saveShows = shows => {
 export const exportWatched = () => JSON.stringify(read(WATCHED_KEY), null, 2);
 
 // A file is only trusted for its shape. Anything else in it is left out.
-export const importWatched = text => {
+export const importWatched = (text) => {
   const parsed = JSON.parse(text);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not a backup");
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    throw new Error("not a backup");
 
   const watched = {};
-  for (const [id, show] of Object.entries(parsed)){
+  for (const [id, show] of Object.entries(parsed)) {
     if (!/^\d+$/.test(id) || !show || typeof show !== "object") continue;
     watched[id] = {
       currentSeason: Number(show.currentSeason) || 1,
       currentEpisode: Number(show.currentEpisode) || 0,
       rating: Number(show.rating) || null,
-      dropped: Boolean(show.dropped)
+      dropped: Boolean(show.dropped),
     };
   }
   if (!Object.keys(watched).length) throw new Error("no shows in it");
@@ -51,4 +69,4 @@ export const importWatched = text => {
 
 export const getApiKey = () => localStorage.getItem(API_KEY_KEY) || "";
 
-export const setApiKey = key => localStorage.setItem(API_KEY_KEY, key);
+export const setApiKey = (key) => localStorage.setItem(API_KEY_KEY, key);

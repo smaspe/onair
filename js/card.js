@@ -7,5 +7,7 @@ export const card = (id, airDates = false) => ({
   id,
   airDates,
 
-  get show(){ return this.$store.library.shows[this.id]; }
+  get show() {
+    return this.$store.library.shows[this.id];
+  },
 });

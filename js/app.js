@@ -13,7 +13,12 @@ import { defineParts } from "./parts.js";
 // Each name is a tag and a file: <show-card> is parts/show-card.html.
 // They load before Alpine starts, so the first paint has the markup it needs.
 await defineParts([
-  "show-card", "dropped-card", "search-row", "suggestion-card", "star-rating", "add-button"
+  "show-card",
+  "dropped-card",
+  "search-row",
+  "suggestion-card",
+  "star-rating",
+  "add-button",
 ]);
 
 Alpine.magic("display", () => display);

@@ -2,7 +2,7 @@
 
 Cloudflare serves the page and proxies TMDB. One Worker does both jobs.
 
-## One Worker, two jobs
+## Cloudflare Worker has two jobs
 
 A Worker can hold a directory of static files and run code. A request that matches a file is
 served from the file and never runs the Worker. A request that matches a route in

@@ -1,6 +1,6 @@
 <!-- props: row (a search hit) -->
 <div class="row">
-  <img :src="$display.posterUrl(row.posterPath)" alt="">
+  <img :src="$display.posterUrl(row.posterPath)" alt="" />
   <div class="info">
     <div class="title">
       <span x-text="row.name"></span>
@@ -9,7 +9,11 @@
     <div class="meta">
       <star-rating x-data="{ row }"></star-rating>
       <span class="dim" x-text="$display.sizeOf(row)"></span>
-      <span class="dim" x-show="row.genres.length" x-text="row.genres.join(' · ')"></span>
+      <span
+        class="dim"
+        x-show="row.genres.length"
+        x-text="row.genres.join(' · ')"
+      ></span>
     </div>
     <p class="overview" x-show="row.overview" x-text="row.overview"></p>
   </div>

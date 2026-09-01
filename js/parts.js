@@ -9,13 +9,21 @@
 //
 // A part that changes a show takes its id and reads the record back from the store: see
 // card.js for why a record cannot be handed down through x-data.
-export const defineParts = names => Promise.all(names.map(async name => {
-  const markup = await fetch(`parts/${name}.html`).then(response => response.text());
+export const defineParts = (names) =>
+  Promise.all(
+    names.map(async (name) => {
+      const markup = await fetch(`parts/${name}.html`).then((response) =>
+        response.text(),
+      );
 
-  customElements.define(name, class extends HTMLElement {
-    // x-for moves nodes about, which reconnects them; the markup goes in once.
-    connectedCallback(){
-      if (!this.children.length) this.innerHTML = markup;
-    }
-  });
-}));
+      customElements.define(
+        name,
+        class extends HTMLElement {
+          // x-for moves nodes about, which reconnects them; the markup goes in once.
+          connectedCallback() {
+            if (!this.children.length) this.innerHTML = markup;
+          }
+        },
+      );
+    }),
+  );

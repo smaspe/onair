@@ -23,87 +23,112 @@ const showRow = (result, names) => ({
   vote: result.vote_average,
   votes: result.vote_count,
   overview: result.overview || "",
-  genres: (result.genre_ids || []).map(genreId => names.get(genreId)).filter(Boolean)
+  genres: (result.genre_ids || [])
+    .map((genreId) => names.get(genreId))
+    .filter(Boolean),
 });
 
 // How long a show is tells a pilot apart from the series it became, and the search
 // results do not carry it.
-const withSize = async row => {
+const withSize = async (row) => {
   try {
     const details = await get(`/tv/${row.id}`);
     return {
       ...row,
       seasonTotal: details.number_of_seasons,
       episodeTotal: details.number_of_episodes,
-      kind: details.type === "Scripted" ? "" : details.type || ""
+      kind: details.type === "Scripted" ? "" : details.type || "",
     };
-  } catch { return row; }
+  } catch {
+    return row;
+  }
 };
 
-export const searchTv = async query => {
+export const searchTv = async (query) => {
   const [data, names] = await Promise.all([
     get("/search/tv", { query, include_adult: "false" }),
-    genreNames()
+    genreNames(),
   ]);
-  const rows = (data.results || []).slice(0, 8).map(result => showRow(result, names));
+  const rows = (data.results || [])
+    .slice(0, 8)
+    .map((result) => showRow(result, names));
   return Promise.all(rows.map(withSize));
 };
 
 // An episode with no title of its own is named "Episode 5", which only repeats its number.
 const PLACEHOLDER = /^episode \d+$/i;
 
-const episodeRef = episode => {
+const episodeRef = (episode) => {
   if (!episode || !episode.air_date) return null;
   const name = episode.name || "";
   return {
     season: episode.season_number,
     episode: episode.episode_number,
     airDate: episode.air_date,
-    title: PLACEHOLDER.test(name) ? "" : name
+    title: PLACEHOLDER.test(name) ? "" : name,
   };
 };
 
 // TMDB names the genres once; recommendations only carry their ids.
 let genres = null;
 const genreNames = async () => {
-  if (!genres){
+  if (!genres) {
     try {
       const data = await get("/genre/tv/list");
-      genres = new Map((data.genres || []).map(genre => [genre.id, genre.name]));
-    } catch { genres = new Map(); }
+      genres = new Map(
+        (data.genres || []).map((genre) => [genre.id, genre.name]),
+      );
+    } catch {
+      genres = new Map();
+    }
   }
   return genres;
 };
 
-export const fetchRecommendations = async id => {
-  const [data, names] = await Promise.all([get(`/tv/${id}/recommendations`), genreNames()]);
-  return (data.results || []).map(result => showRow(result, names));
+export const fetchRecommendations = async (id) => {
+  const [data, names] = await Promise.all([
+    get(`/tv/${id}/recommendations`),
+    genreNames(),
+  ]);
+  return (data.results || []).map((result) => showRow(result, names));
 };
 
 const episodesOf = async (id, number) => {
   try {
     const season = await get(`/tv/${id}/season/${number}`);
     return (season.episodes || []).map(episodeRef).filter(Boolean);
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 };
 
 // The stored record for a show. `existing` keeps the watch progress.
 export const fetchRecord = async (id, existing) => {
   const details = await get(`/tv/${id}`);
   const seasons = (details.seasons || [])
-    .filter(season => season.season_number > 0 && season.episode_count > 0)
-    .map(season => ({ number: season.season_number, episodeCount: season.episode_count }));
+    .filter((season) => season.season_number > 0 && season.episode_count > 0)
+    .map((season) => ({
+      number: season.season_number,
+      episodeCount: season.episode_count,
+    }));
 
   const currentSeason = existing?.currentSeason ?? (seasons[0]?.number || 1);
   const currentEpisode = existing?.currentEpisode ?? 0;
   const next = details.next_episode_to_air;
 
   // The card names three episodes: the one watched, the one after it, and the one still to air.
-  const wanted = new Set([currentSeason, nextWatched({ seasons, currentSeason, currentEpisode }).season]);
+  const wanted = new Set([
+    currentSeason,
+    nextWatched({ seasons, currentSeason, currentEpisode }).season,
+  ]);
   if (next) wanted.add(next.season_number);
-  const episodes = (await Promise.all([...wanted].map(number => episodesOf(id, number)))).flat();
+  const episodes = (
+    await Promise.all([...wanted].map((number) => episodesOf(id, number)))
+  ).flat();
 
-  const upcoming = next ? episodes.filter(episode => episode.airDate >= next.air_date) : [];
+  const upcoming = next
+    ? episodes.filter((episode) => episode.airDate >= next.air_date)
+    : [];
 
   return {
     id: details.id,
@@ -118,6 +143,6 @@ export const fetchRecord = async (id, existing) => {
     dropped: existing?.dropped || false,
     rating: existing?.rating ?? null,
     currentSeason,
-    currentEpisode
+    currentEpisode,
   };
 };

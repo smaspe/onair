@@ -2,7 +2,7 @@
 
 Start here.
 
-ONAIR is a static page. Two services stand behind it, and neither exists yet:
+ONAIR is a static page. Two services will stand behind it, and neither exists yet:
 
 - **The client** renders everything and holds the watch data.
 - **A Cloudflare Worker** serves the page, and later reads TMDB on its behalf.
@@ -25,8 +25,8 @@ flowchart LR
 
 ## Where things stand
 
-The client works. It keeps the watch data in `localStorage` and calls TMDB directly with a key
-that each user pastes into the header. Nothing is deployed.
+The client keeps the watch data in `localStorage` and calls TMDB directly with a key
+that each user pastes into the header.
 
 ## Setting this up for the first time
 
@@ -42,9 +42,6 @@ Then, in order:
    forwards, why it does not authenticate, and what the licence costs if this ever earns money.
 3. **Add accounts.** Read [user data](user-data.md) for the two modes, the schema and the merge
    rules, then follow `supabase.md` for the project and the SQL.
-
-You do not need step 2 to do step 1, or step 3 to do step 2. Stopping after any of them leaves
-a working app.
 
 ## The documents
 

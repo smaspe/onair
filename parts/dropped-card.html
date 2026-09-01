@@ -1,7 +1,7 @@
 <!-- props: show. The delete guard comes from the droppedList scope around it. -->
 <article class="show">
   <div class="row">
-    <img :src="$display.posterUrl(show.posterPath)" alt="">
+    <img :src="$display.posterUrl(show.posterPath)" alt="" />
     <div class="info">
       <div class="title">
         <span x-text="show.name"></span>
@@ -10,8 +10,12 @@
     </div>
     <div class="actions">
       <button @click="$store.library.restore(show)">restore</button>
-      <button class="remove" :class="armed(show.id) && 'armed'" @click="press(show.id)"
-        x-text="armed(show.id) ? 'sure?' : 'delete'"></button>
+      <button
+        class="remove"
+        :class="armed(show.id) && 'armed'"
+        @click="press(show.id)"
+        x-text="armed(show.id) ? 'sure?' : 'delete'"
+      ></button>
     </div>
   </div>
 </article>

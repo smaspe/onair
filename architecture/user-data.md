@@ -1,11 +1,8 @@
 # User data
 
-The watch data is which episode you reached, what you make of a show, and whether you dropped
-it. Where it lives depends on whether you have an account.
+The watch data is what's seen, the rating of shows, and what's dropped.
 
 ## Two modes
-
-The app works in both, and it never asks for an account.
 
 **Anonymous.** localStorage holds the watch data. It stays on that device. The export and
 import buttons move it to another device as a JSON file. This is the whole feature set for a
@@ -69,6 +66,16 @@ version counter for the un-watch button. Do this when there is evidence, not bef
 
 ## Keys
 
-The `anon` key ships in the static page. That is what it is for: it grants nothing on its own,
-because every read and write goes through the policy above. The `service_role` key bypasses
-row level security and must never reach the client.
+Supabase issues a **publishable** key, `sb_publishable_…`, and a **secret** key, `sb_secret_…`.
+
+The publishable key is committed to this repository and served to every visitor. Supabase
+intends that — its own documentation lists source code among the safe places for it — because
+the key only says which project is being addressed. It carries no permission of its own: the
+policy above decides what can be read and written, and by whom.
+
+**That means row level security is the only thing protecting the data.** A table with RLS off,
+or a policy that does not check `auth.uid()`, is readable and writable by anyone who opens the
+page and copies the key out of it. Check the policy before the table holds anything real.
+
+The secret key bypasses row level security entirely. It belongs in `wrangler secret` or the
+Supabase dashboard, never in this repository and never in anything the browser loads.

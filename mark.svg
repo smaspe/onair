@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -52 104 104">
-  <!-- The light, and the signal leaving it. The plaque of the full mark says ON AIR; at
-       this size the words are unreadable, so only the broadcast survives. -->
+  <!-- The light, and the signal leaving it. The full mark in logo.svg says ON AIR around
+       this; at the size of a tab or a header the words are unreadable, so only the
+       broadcast survives.
+
+       A browser cannot give a favicon a colour, so the accent is written here. It must
+       match the accent in styles.css. -->
   <circle cx="0" cy="0" r="11" fill="#46b9aa"/>
   <g fill="none" stroke="#46b9aa" stroke-width="8" stroke-linecap="round">
     <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>
