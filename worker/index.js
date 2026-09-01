@@ -52,9 +52,17 @@ export default {
     const route = ROUTES.find((candidate) => candidate.path.test(path));
     if (!route) return fail(404, "not a route this proxy forwards");
 
+    // The cache in front of this Worker is keyed on the address as it arrives, so a
+    // parameter nobody asked for would make a second entry for the same answer. Dropping it
+    // quietly would let anyone miss the cache at will and spend a TMDB call each time.
+    const allowed = route.query ?? [];
+    for (const name of url.searchParams.keys()) {
+      if (!allowed.includes(name)) return fail(404, `unexpected parameter: ${name}`);
+    }
+
     const upstream = new URL(TMDB + path);
     upstream.searchParams.set("api_key", env.TMDB_KEY);
-    for (const name of route.query ?? []) {
+    for (const name of allowed) {
       const value = url.searchParams.get(name);
       if (value) upstream.searchParams.set(name, value.slice(0, MAX_QUERY));
     }
