@@ -106,7 +106,7 @@
               </h2>
             </summary>
 
-            <!-- parts/show-card.html reads `show` and `airDates`; card() reads the record back
+            <!-- parts/show-card.htm reads `show` and `airDates`; card() reads the record back
              from the store, so what the card changes is the record and not a copy. -->
             <div class="cards">
               <template x-for="show in section.shows" :key="show.id">
@@ -190,14 +190,14 @@
             Nothing matches those filters.
           </p>
 
-          <!-- parts/suggestion-card.html reads `row`, as parts/search-row.html does. -->
+          <!-- parts/suggestion-card.htm reads `row`, as parts/search-row.htm does. -->
           <template x-for="item in $store.recommended.visible" :key="item.id">
             <suggestion-card x-data="{ row: item }"></suggestion-card>
           </template>
         </section>
       </div>
 
-      <!-- parts/dropped-card.html reads `show`, and reaches the delete guard in this scope. -->
+      <!-- parts/dropped-card.htm reads `show`, and reaches the delete guard in this scope. -->
       <div
         class="view"
         id="dropped"

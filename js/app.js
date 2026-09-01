@@ -10,7 +10,7 @@ import { card } from "./card.js";
 import { display } from "./display.js";
 import { defineParts } from "./parts.js";
 
-// Each name is a tag and a file: <show-card> is parts/show-card.html.
+// Each name is a tag and a file: <show-card> is parts/show-card.htm.
 // They load before Alpine starts, so the first paint has the markup it needs.
 await defineParts([
   "show-card",

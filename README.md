@@ -23,8 +23,10 @@ aired, and `✗` steps back one.
 It is a static page. **No build step, no bundler, no framework compilation**.
 
 - **Alpine** provides reactivity.
-- **Components are HTML files.** `parts/show-card.html` is mounted by writing
+- **Components are HTML files.** `parts/show-card.htm` is mounted by writing
   `<show-card>`. `js/parts.js` defines each custom element and injects the file's markup.
+  The `.htm` is deliberate: Cloudflare redirects `.html` addresses to an extensionless form,
+  and these are fetched by name.
 - **No router.** Views switch with CSS. `:target` shows the view whose id matches the fragment. 
 - **Show data comes from TMDB.**
 - **Your progress is stored in `localStorage`** under one key, with export and import buttons.
@@ -42,15 +44,18 @@ hosting, the TMDB proxy, the user data and the recommendation formula.
 
 ## Running it
 
-Any file server will do. ES modules need an `http://` origin, so opening `index.html` from
-the filesystem does not work.
-
 ```bash
-python3 -m http.server 8000
+npx wrangler dev
 ```
 
-Then open <http://localhost:8000> and paste a TMDB API key into the header. From step 2 of the
+Then open <http://localhost:8787> and paste a TMDB API key into the header. From step 2 of the
 roadmap the key moves into the Worker and that form disappears.
+
+Wrangler routes the way the deployed Worker does, so it is the honest thing to develop
+against. Any other file server works too — ES modules need an `http://` origin, so only
+opening `index.html` from the filesystem fails.
+
+Deployed at <https://onair.smaspe.workers.dev>. See `cloudflare.md`.
 
 ## Credits
 
