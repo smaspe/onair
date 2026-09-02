@@ -20,13 +20,16 @@ aired, and `✗` steps back one.
 
 ## How it works
 
-It is a static page. **No build step, no bundler, no framework compilation**.
+A page with no build step — **no bundler, no framework compilation**. The files in this
+repository are the files the browser runs. Behind it, one Cloudflare Worker serves those
+files and answers `/api` with show data, so the app is run with wrangler rather than a file
+server.
 
 - **Alpine** provides reactivity.
-- **Components are HTML files.** `parts/show-card.htm` is mounted by writing
+- **Components are HTML files.** `parts/show-card.part.html` is mounted by writing
   `<show-card>`. `js/parts.js` defines each custom element and injects the file's markup.
-  The `.htm` is deliberate: Cloudflare redirects `.html` addresses to an extensionless form,
-  and these are fetched by name.
+  The address drops the `.html` — Cloudflare treats `/parts/show-card.part` as the canonical
+  one and would redirect the longer form to it.
 - **No router.** Views switch with CSS. `:target` shows the view whose id matches the fragment. 
 - **Show data comes from TMDB.**
 - **Your progress is stored in `localStorage`** under one key, with export and import buttons.
@@ -50,15 +53,12 @@ npx wrangler dev
 
 Then open <http://localhost:8787>.
 
-Wrangler is needed now rather than any file server, because the TMDB key lives in the Worker.
-Put a copy in `.dev.vars`, which git ignores:
+Wrangler runs both halves: the files, and the Worker that answers `/api`. It needs the TMDB
+key in `.dev.vars`, which git ignores:
 
 ```
 TMDB_KEY=your-tmdb-v3-key
 ```
-
-The static half still runs from any file server — but the app fetches show data through
-`/api`, so without the Worker nothing loads.
 
 Deployed at <https://onair.smaspe.workers.dev>. See `cloudflare.md`.
 

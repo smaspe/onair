@@ -6,9 +6,11 @@ const BASE = "/api";
 // Wide enough to stay sharp on a dense screen: the posters are drawn at most 52px across.
 export const IMG_BASE = "https://image.tmdb.org/t/p/w185";
 
+// The cache in front of the Worker is keyed on the whole address, so a request with no
+// parameters must not carry an empty `?`: that would be a second key for the same answer.
 const get = async (path, params = {}) => {
-  const query = new URLSearchParams(params);
-  const response = await fetch(`${BASE}${path}?${query}`);
+  const query = new URLSearchParams(params).toString();
+  const response = await fetch(BASE + path + (query ? `?${query}` : ""));
   if (!response.ok) throw new Error("tmdb-error-" + response.status);
   return response.json();
 };

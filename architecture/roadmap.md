@@ -35,8 +35,8 @@ ways — Alpine, uhtml and Preact — and compared. Alpine won on the reactivity
 **A palette.** Teal, and a mark that is a studio sign
 broadcasting.
 
-**Cloudflare.** The page moved to a Worker on `workers.dev`. The parts were renamed `.htm`,
-because Cloudflare redirects a `.html` address to an extensionless form and each part is
-fetched by name.
+**Cloudflare.** The page moved to a Worker on `workers.dev`. The parts became
+`*.part.html`, fetched without the `.html`, because Cloudflare treats the shorter address as
+the canonical one and redirects to it.
 
 **TMDB proxy on Cloudflare**, so nobody needs a key of their own.

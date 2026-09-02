@@ -1,6 +1,6 @@
 // A part is a component written as an HTML file.
 //
-//   parts/search-row.htm   is mounted by   <search-row x-data="{ row: result }"></search-row>
+//   parts/search-row.part.html   is mounted by   <search-row x-data="{ row: result }">
 //
 // The custom element only injects the file's markup into itself. It uses no shadow DOM,
 // so styles.css still reaches the markup and Alpine still initialises it: the directives
@@ -10,13 +10,15 @@
 // A part that changes a show takes its id and reads the record back from the store: see
 // card.js for why a record cannot be handed down through x-data.
 //
-// The files end in .htm, not .html. Cloudflare rewrites a .html address to its extensionless
-// form and redirects there, which would cost a round trip on each of these before the first
-// paint. It leaves .htm alone, and every editor and every file server still reads it as HTML.
+// `.part.html` says what the file is — a fragment, not a page — while keeping the extension
+// that editors and servers understand. The address drops the `.html`, because Cloudflare
+// treats `/parts/search-row.part` as the canonical address of that file and redirects the
+// longer form to it. Asking for the short one saves a round trip on each part, and all six
+// are awaited before the first paint.
 export const defineParts = (names) =>
   Promise.all(
     names.map(async (name) => {
-      const markup = await fetch(`parts/${name}.htm`).then((response) =>
+      const markup = await fetch(`parts/${name}.part`).then((response) =>
         response.text(),
       );
 
