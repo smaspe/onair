@@ -56,17 +56,13 @@ export const searchTv = async (query) => {
   return Promise.all(rows.map(withSize));
 };
 
-// An episode with no title of its own is named "Episode 5", which only repeats its number.
-const PLACEHOLDER = /^episode \d+$/i;
-
 const episodeRef = (episode) => {
   if (!episode || !episode.air_date) return null;
-  const name = episode.name || "";
   return {
     season: episode.season_number,
     episode: episode.episode_number,
     airDate: episode.air_date,
-    title: PLACEHOLDER.test(name) ? "" : name,
+    title: episode.name || "",
   };
 };
 
