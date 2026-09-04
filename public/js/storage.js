@@ -23,11 +23,13 @@ const read = (key) => {
   }
 };
 
+export const blank = (id) => ({ ...EMPTY, id: Number(id) });
+
 export const loadShows = () =>
   Object.fromEntries(
     Object.entries(read(WATCHED_KEY)).map(([id, watched]) => [
       id,
-      { ...EMPTY, id: Number(id), ...watched },
+      { ...blank(id), ...watched },
     ]),
   );
 

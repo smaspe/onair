@@ -12,8 +12,9 @@ user who wants no account.
 reads the cache first, so it paints immediately, then reconciles with the server.
 
 **The upgrade.** A user who signs in for the first time keeps what they already track: the
-client uploads the local rows and applies the merge rules below to any show that already has
-a row on the server. localStorage is not cleared. It becomes the cache.
+client uploads every show the server does not hold. Where both hold the same show, the row
+stands. localStorage keeps no timestamp, so the two cannot be ordered by age, and a cache does
+not win against its source. localStorage is not cleared. It becomes the cache.
 
 ## The schema
 
@@ -39,12 +40,17 @@ Row level security limits every row to `auth.uid() = user_id`. A trigger sets `u
 Clients must not send that column: one server clock decides the order, so a device with a
 wrong clock cannot win.
 
-`show_id` is the TMDB id, because that is what the client asks for. `imdb_id` rides along
-because every show database maps it and it arrives free in the TMDB payload. A change of
-provider then reads the same string instead of remapping every row, which would otherwise
-force every user to reload their library before the app worked again.
+`show_id` is the TMDB id, because that is what the client asks for. `imdb_id` is there because
+every show database maps it. A change of provider then reads the same string instead of
+remapping every row, which would otherwise force every user to reload their library before the
+app worked again.
 
-The SQL to apply this is in `supabase.md`.
+**The column is empty today.** TMDB returns `imdb_id` for a film but not for a series; a series
+carries it under `append_to_response=external_ids`, and the proxy rejects any parameter that is
+not on its allowlist. Until the proxy asks for it, the escape hatch is not armed.
+
+`supabase/schemas/progress.sql` is the schema. The files under `supabase/migrations/` are
+generated from it and are not meant to be read.
 
 ## Merge rules
 
@@ -59,6 +65,12 @@ it.
 
 **A delete leaves a tombstone.** `deleted_at` marks the row and reads filter it out. A hard
 delete lets a second device write the row again.
+
+**A write that never reaches the table is lost.** The client writes to localStorage first and
+to the table second. Nothing retries the second half, so a change made while the network is
+down survives only until the next read replaces it. Keeping `updated_at` beside the local
+progress would let a genuinely newer local row win, at the cost of trusting the device clock
+for that one comparison.
 
 If a lost episode ever happens in practice, merge the progress as a maximum instead: compare
 the absolute episode index and keep the higher one. That refuses a rewind, so it also needs a
