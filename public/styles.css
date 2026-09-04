@@ -193,6 +193,10 @@ section, .group{ margin-bottom:1.75rem; }
 footer{ display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;
   margin-top:1.5rem; font-size:0.75rem; color:var(--dim); }
 
+/* The sign in form and the line that replaces it once you are signed in. */
+.account, .account form, .who{ display:flex; align-items:center; flex-wrap:wrap; gap:0.4rem; }
+.account input{ width:9rem; }
+
 /* On a phone a card is too narrow for one line: the row wraps under the poster, the two
    progress lines stack, and the poster narrows to leave the words some room. */
 @media (max-width:600px){

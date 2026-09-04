@@ -196,12 +196,43 @@
       </div>
     </main>
 
-    <footer x-data="transfer">
+    <footer>
       <span>Stored in this browser. Nothing you watch leaves your device.</span>
 
-      <span class="dim" x-text="note"></span>
+      <!-- One form does both: an address nobody has used yet makes an account, a known one
+       signs in. -->
+      <div class="account" x-data="account">
+        <form x-show="!user" @submit.prevent="signIn()">
+          <input
+            type="email"
+            x-model="email"
+            aria-label="Email"
+            placeholder="email"
+            autocomplete="email"
+            required
+          />
+          <input
+            type="password"
+            x-model="password"
+            aria-label="Password"
+            placeholder="password"
+            autocomplete="current-password"
+            required
+          />
+          <button>sign in</button>
+          <button type="button" @click="signUp()">sign up</button>
+        </form>
 
-      <span class="actions">
+        <span class="who" x-show="user">
+          <span x-text="user?.email"></span>
+          <button @click="signOut()">sign out</button>
+        </span>
+
+        <span class="dim" x-text="note"></span>
+      </div>
+
+      <span class="actions" x-data="transfer">
+        <span class="dim" x-text="note"></span>
         <button @click="save()" title="Write what you watch to a file">
           export
         </button>

@@ -20,14 +20,14 @@ aired, and `✗` steps back one.
 
 ## How it works
 
-A page with no build step — **no bundler, no framework compilation**. The files in this
-repository are the files the browser runs. Behind it, one Cloudflare Worker serves those
-files and answers `/api` with show data, so the app is run with wrangler rather than a file
-server.
+A page with no build step — **no bundler, no framework compilation**. The files in `public/`
+are the files the browser runs, and everything under it is served at its own path. Behind it,
+one Cloudflare Worker in `worker/` serves those files and answers `/api` with show data, so
+the app is run with wrangler rather than a file server.
 
 - **Alpine** provides reactivity.
-- **Components are HTML files.** `parts/show-card.part.html` is mounted by writing
-  `<show-card>`. `js/parts.js` defines each custom element and injects the file's markup.
+- **Components are HTML files.** `public/parts/show-card.part.html` is mounted by writing
+  `<show-card>`. `public/js/parts.js` defines each custom element and injects the file's markup.
   The address drops the `.html` — Cloudflare treats `/parts/show-card.part` as the canonical
   one and would redirect the longer form to it.
 - **No router.** Views switch with CSS. `:target` shows the view whose id matches the fragment. 
@@ -36,8 +36,8 @@ server.
 
 The one trap worth knowing: **a record must be reached through the store, never handed down
 from an `x-for`.** Alpine gives a child scope a copy of the loop item, so writes to it render
-and are then lost. `js/card.js` passes an id and reads the record back. Its comment explains
-this, and `js/parts.js` points at it.
+and are then lost. `public/js/card.js` passes an id and reads the record back. Its comment
+explains this, and `public/js/parts.js` points at it.
 
 ## Documents
 

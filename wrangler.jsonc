@@ -3,10 +3,12 @@
   "main": "worker/index.js",
   "compatibility_date": "2026-09-01",
 
-  // The repository root is the site. Only /api/* reaches the Worker; every other path is
-  // served straight from a file, which costs no request against the Workers quota.
+  // public/ holds the site and nothing else, so every file under it is meant to be public and
+  // nothing wrangler writes while it serves is inside the tree it watches. Only /api/* reaches
+  // the Worker; every other path is served straight from a file, which costs no request
+  // against the Workers quota.
   "assets": {
-    "directory": ".",
+    "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
     "run_worker_first": ["/api/*"]

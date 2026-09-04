@@ -5,6 +5,7 @@ import { recommended } from "./recommended.js";
 import { search } from "./search.js";
 import { droppedList } from "./dropped-list.js";
 import { transfer } from "./transfer.js";
+import { account } from "./account.js";
 import { card } from "./card.js";
 import { display } from "./display.js";
 import { defineParts } from "./parts.js";
@@ -26,6 +27,7 @@ Alpine.store("recommended", recommended);
 Alpine.data("search", search);
 Alpine.data("droppedList", droppedList);
 Alpine.data("transfer", transfer);
+Alpine.data("account", account);
 Alpine.data("card", card);
 
 Alpine.start();
