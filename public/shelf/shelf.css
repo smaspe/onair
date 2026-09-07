@@ -1,0 +1,297 @@
+/* A catalogue of a collection: cool paper, hairline rules, ink-blue accent, and the posters
+   supplying every other colour on the page. */
+:root {
+  --ground: #f4f6f7;
+  --panel: #ffffff;
+  --rule: #dbe1e5;
+  --ink: #11171a;
+  --mute: #5c6d76;
+  --accent: #1d3e77;
+  --signal: #9a6206;
+  --shade: rgba(17, 23, 26, 0.08);
+  --danger: #b8402f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0f1214;
+    --panel: #171c1f;
+    --rule: #262f34;
+    --ink: #e9eef0;
+    --mute: #8797a0;
+    --accent: #8fb4ea;
+    --signal: #e9a63d;
+    --shade: rgba(0, 0, 0, 0.45);
+    --danger: #ef7f6d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 15px/1.55 "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+[x-cloak] { display: none !important; }
+button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.wrap { width: min(100% - 2.5rem, 68rem); margin-inline: auto; }
+.caps {
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--mute);
+}
+.grow { flex: 1; }
+
+/* ---- masthead ---- */
+header { border-bottom: 1px solid var(--rule); background: var(--panel); }
+.top { display: flex; align-items: center; gap: 1rem; padding: 1rem 0 0.85rem; }
+.logo {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.95rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.logo img { width: 1.3rem; height: 1.3rem; }
+.find {
+  display: inline-flex; align-items: center; gap: 0.55rem;
+  background: var(--ground); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 0.38rem 0.8rem; color: var(--mute); font-size: 0.9rem;
+}
+.find:hover { color: var(--ink); border-color: var(--accent); }
+.find kbd {
+  font: 500 0.72rem/1 inherit; color: var(--mute);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 0.15rem 0.3rem;
+}
+
+/* ---- finding a show, over the shelf ---- */
+.veil {
+  position: fixed; inset: 0; z-index: 40; display: grid; place-items: start center;
+  padding-top: 12vh; background: color-mix(in srgb, var(--ink) 38%, transparent);
+}
+.pal {
+  width: min(100% - 2rem, 34rem); background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 6px; box-shadow: 0 20px 60px var(--shade); overflow: hidden;
+}
+.pal input {
+  width: 100%; font: inherit; font-size: 1rem; padding: 0.9rem 1rem; border: 0;
+  background: transparent; color: var(--ink);
+}
+.pal input:focus { outline: none; }
+/* The rule belongs to the results, not to the input, or an empty palette is cut in two. */
+.hits {
+  max-height: 52vh; overflow-y: auto; padding: 0.3rem;
+  border-top: 1px solid var(--rule);
+}
+.hits .none { padding: 1.4rem 0; }
+.tabs { display: flex; gap: 1.3rem; flex-wrap: wrap; padding-bottom: 0.6rem; }
+.tabs button {
+  padding: 0 0 0.5rem; color: var(--mute); border-bottom: 2px solid transparent;
+}
+.tabs button .n { font-size: 0.8rem; margin-left: 0.35rem; opacity: 0.75; }
+.tabs button[aria-current="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+
+.hit {
+  display: flex; align-items: center; gap: 0.75rem; width: 100%; text-align: left;
+  padding: 0.5rem 0.6rem; border-radius: 6px;
+}
+.hit:hover, .hit:focus-visible { background: var(--ground); }
+.thumb { width: 2rem; height: 3rem; border-radius: 3px; flex: none; }
+.hit b { font-weight: 600; }
+.hit span { color: var(--mute); font-size: 0.84rem; }
+
+/* ---- the wall ---- */
+main { padding: 1.6rem 0 4rem; }
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 1.5rem 1.1rem;
+}
+.card { display: flex; flex-direction: column; gap: 0.45rem; text-align: left; padding: 0; }
+/* Every box that holds artwork paints the stand-in first, and the picture covers it when there
+   is one. A poster that is missing, or that fails to load, leaves the stand-in showing. */
+.art, .thumb {
+  position: relative; overflow: hidden;
+  background: linear-gradient(155deg, hsl(var(--hue, 210) 42% 48%), hsl(calc(var(--hue, 210) + 40) 36% 27%));
+}
+.art {
+  aspect-ratio: 2 / 3; border-radius: 3px;
+  box-shadow: 0 1px 2px var(--shade), 0 10px 22px var(--shade);
+  transition: transform 0.16s ease;
+}
+.card:hover .art { transform: translateY(-3px); }
+/* A picture appears once it has loaded. One that never loads never appears, so a broken
+   address shows the stand-in rather than the browser's torn-page mark. */
+.art img, .thumb img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.art img.here, .thumb img.here { opacity: 1; }
+.stand {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-weight: 600; color: rgba(255, 255, 255, 0.92); letter-spacing: 0.02em;
+}
+.art .stand { font-size: 1.5rem; }
+.thumb .stand { font-size: 0.8rem; }
+.badge {
+  position: absolute; top: 0.4rem; right: 0.4rem; min-width: 1.4rem; height: 1.4rem;
+  padding: 0 0.32rem; display: grid; place-items: center; border-radius: 999px;
+  background: var(--signal); color: #fff; font-size: 0.74rem; font-weight: 600;
+}
+.chip {
+  position: absolute; left: 0.4rem; bottom: 0.75rem; padding: 0.1rem 0.35rem;
+  border-radius: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--ink); font-size: 0.7rem; font-weight: 500;
+}
+.meter { position: absolute; inset: auto 0 0 0; height: 4px; background: rgba(0, 0, 0, 0.35); }
+.meter i { display: block; height: 100%; background: #fff; }
+.card h3 { margin: 0; font-size: 0.97rem; font-weight: 600; line-height: 1.3; }
+.card p {
+  margin: 0; color: var(--mute); font-size: 0.8rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.none { color: var(--mute); padding: 3rem 0; text-align: center; }
+
+/* ---- detail sheet ---- */
+.scrim {
+  position: fixed; inset: 0; z-index: 30;
+  background: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+.sheet {
+  position: fixed; inset: 0 0 0 auto; z-index: 31; width: min(100%, 30rem);
+  background: var(--panel); border-left: 1px solid var(--rule); overflow-y: auto;
+  box-shadow: -12px 0 40px var(--shade);
+}
+/* The poster fills the head of the sheet. The text sits on a scrim rather than on the art, so
+   it reads whatever the poster happens to be. */
+/* Sixteen by nine, because that is the shape of the still it holds. */
+.hero {
+  position: relative; aspect-ratio: 16 / 9; display: flex; align-items: flex-end;
+  background:
+    linear-gradient(155deg, hsl(var(--hue, 210) 42% 48%), hsl(calc(var(--hue, 210) + 40) 36% 27%))
+    center / cover no-repeat;
+}
+.hero::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(8, 11, 13, 0.94) 12%, rgba(8, 11, 13, 0.55) 52%, rgba(8, 11, 13, 0.15));
+}
+.hero .lift { position: relative; z-index: 1; padding: 1.3rem 1.5rem 1.15rem; }
+.hero h2 {
+  margin: 0.25rem 0 0.2rem; font-size: 1.6rem; font-weight: 600;
+  letter-spacing: -0.015em; text-wrap: balance; color: #fff;
+}
+.hero .caps { color: rgba(255, 255, 255, 0.78); }
+.whose { display: flex; align-items: center; gap: 0.6rem; }
+/* Network marks are supplied as flat artwork, most of them black. Forcing them white keeps
+   them legible on the scrim, at the cost of the ones that carry a colour of their own. */
+.badge-net {
+  height: 1rem; width: auto; max-width: 5.5rem; object-fit: contain;
+  filter: brightness(0) invert(1); opacity: 0.9;
+}
+.hero .sub { color: rgba(255, 255, 255, 0.82); font-size: 0.88rem; }
+.hero .tag {
+  color: rgba(255, 255, 255, 0.9); font-size: 0.92rem; font-style: italic;
+  margin-bottom: 0.3rem;
+}
+.shut {
+  position: absolute; z-index: 2; top: 0.9rem; right: 1rem; width: 1.9rem; height: 1.9rem;
+  border-radius: 50%; background: rgba(8, 11, 13, 0.55); color: #fff;
+  display: grid; place-items: center;
+}
+.shut:hover { background: rgba(8, 11, 13, 0.8); }
+
+/* A show reached from a search result is not tracked yet, and says so before anything else. */
+.offer {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  margin-bottom: 1.1rem; padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.offer span {
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--mute);
+}
+.btn.keep {
+  color: var(--accent); border-color: var(--accent); font-weight: 500;
+  font-size: 0.85rem; white-space: nowrap;
+}
+.btn.keep:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.pad { padding: 1.2rem 1.5rem 2rem; }
+.bar { height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; margin: 0.5rem 0 0.35rem; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.line {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 0.42rem 0; border-bottom: 1px dotted var(--rule); font-size: 0.9rem;
+}
+.line b { font-weight: 600; }
+.line span:last-child { color: var(--mute); }
+.rated { display: inline-flex; align-items: center; gap: 0.5rem; }
+.rated select { padding: 0.18rem 0.3rem; font-size: 0.82rem; }
+
+.curve { display: flex; align-items: flex-end; gap: 0.3rem; height: 3.2rem; margin-top: 1.4rem; }
+.curve div { flex: 1; background: var(--rule); border-radius: 2px 2px 0 0; position: relative; }
+.curve div.here { background: var(--accent); }
+.curve em {
+  position: absolute; inset: -1.15rem 0 auto 0; text-align: center;
+  font-style: normal; font-size: 0.7rem; color: var(--mute);
+}
+.curvex { display: flex; gap: 0.3rem; margin-top: 0.25rem; }
+.curvex span { flex: 1; text-align: center; font-size: 0.7rem; color: var(--mute); }
+
+.season { border-top: 1px solid var(--rule); padding-top: 0.55rem; margin-top: 0.9rem; }
+.season > summary {
+  cursor: pointer; list-style: none; display: flex; justify-content: space-between;
+  align-items: baseline; font-weight: 600;
+}
+.season > summary::-webkit-details-marker { display: none; }
+/* A season you have finished is quieter, and its tally is a tick rather than a fraction. */
+.season.seen > summary { color: var(--mute); }
+.season.seen .count { color: var(--accent); }
+
+/* So is an episode. What is left to watch is what should carry the weight. */
+.epi.seen .nm, .epi.seen .no, .epi.seen .dt { color: var(--mute); opacity: 0.62; }
+.eps { margin-top: 0.4rem; }
+.epi {
+  display: grid; grid-template-columns: 1.2rem 1.6rem 1fr auto; align-items: baseline;
+  gap: 0.55rem; width: 100%; padding: 0.3rem 0.3rem; border-radius: 4px;
+  text-align: left; font-size: 0.88rem;
+}
+.epi:hover:enabled { background: var(--ground); }
+.epi .tick { color: var(--accent); font-weight: 700; }
+.epi .no { color: var(--mute); font-size: 0.8rem; }
+.epi .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.epi .dt { color: var(--mute); font-size: 0.78rem; }
+.epi:disabled { opacity: 0.5; cursor: default; }
+
+.doers {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; justify-content: flex-end;
+  margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+}
+.btn {
+  padding: 0.4rem 0.7rem; border: 1px solid var(--rule); border-radius: 6px;
+  font-size: 0.87rem; color: var(--mute);
+}
+.btn:hover { color: var(--ink); border-color: var(--accent); }
+.btn.bad:hover { color: var(--danger); border-color: var(--danger); }
+select {
+  font: inherit; font-size: 0.87rem; padding: 0.36rem 0.4rem; border: 1px solid var(--rule);
+  border-radius: 6px; background: var(--panel); color: var(--ink);
+}
+
+footer {
+  border-top: 1px solid var(--rule); padding: 1.1rem 0 2.4rem; color: var(--mute);
+  font-size: 0.84rem; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
+}
+footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);
+  color: var(--ink); width: 9rem; }
+
+/* On a phone the posters carry it alone: three across, and the name and the caption go. The
+   art says which show it is and the bar says how far in you are. */
+@media (max-width: 600px) {
+  .wrap { width: min(100% - 1.5rem, 68rem); }
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 0.45rem 0.35rem; }
+  .card h3, .card p { display: none; }
+  .art .stand { font-size: 1.1rem; }
+  .badge { min-width: 1.2rem; height: 1.2rem; font-size: 0.68rem; }
+}
