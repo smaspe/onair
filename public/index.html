@@ -6,6 +6,20 @@
     <title>ONAIR — track what you watch</title>
     <link rel="icon" href="mark.svg" />
     <link rel="stylesheet" href="styles.css" />
+
+    <!-- A module is only discovered once the module that imports it has been parsed, so the
+     graph loads one level at a time unless the levels are named here. -->
+    <link rel="preconnect" href="https://esm.sh" crossorigin />
+    <link rel="modulepreload" href="js/library.js" />
+    <link rel="modulepreload" href="js/recommended.js" />
+    <link rel="modulepreload" href="js/search.js" />
+    <link rel="modulepreload" href="js/card.js" />
+    <link rel="modulepreload" href="js/parts.js" />
+    <link rel="modulepreload" href="js/tmdb.js" />
+    <link rel="modulepreload" href="js/storage.js" />
+    <link rel="modulepreload" href="js/model/progress.js" />
+    <link rel="modulepreload" href="js/model/lists.js" />
+
     <style>
       [x-cloak] {
         display: none !important;
@@ -13,7 +27,10 @@
     </style>
     <script type="module" src="js/app.js"></script>
   </head>
-  <body x-data x-cloak>
+
+  <!-- Only what would read wrongly before Alpine runs is hidden. The header, the tabs and the
+   footer are markup, and wait for nothing. -->
+  <body x-data>
     <header>
       <!-- The same file the tab icon uses. The words beside it are the wordmark, which is why
        the mark carries none of its own. -->
@@ -36,7 +53,7 @@
         />
         <button>Search</button>
 
-        <div class="sheet" x-show="results.length || note">
+        <div class="sheet" x-cloak x-show="results.length || note">
           <p class="empty" x-show="!results.length" x-text="note"></p>
 
           <!-- A tag names a file in parts/, and its x-data is what the file reads. -->
@@ -70,7 +87,7 @@
       ></a>
     </nav>
 
-    <main>
+    <main x-cloak>
       <div class="view" id="shows">
         <p class="empty" x-show="!$store.library.sections.length">
           No shows yet. Search above to start tracking one.
@@ -197,11 +214,15 @@
     </main>
 
     <footer>
-      <span>Stored in this browser. Nothing you watch leaves your device.</span>
-
       <!-- One form does both: an address nobody has used yet makes an account, a known one
-       signs in. -->
-      <div class="account" x-data="account">
+       signs in. Where the watch data sits depends on which of the two you are, so the line
+       that says so belongs in the same scope. -->
+      <div class="account" x-cloak x-data="account">
+        <span x-show="!user"
+          >Stored in this browser. Nothing you watch leaves your device.</span
+        >
+        <span x-show="user">On every device you sign in on.</span>
+
         <form x-show="!user" @submit.prevent="signIn()">
           <input
             type="email"
