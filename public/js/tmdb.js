@@ -6,6 +6,12 @@ const BASE = "/api";
 // Wide enough to stay sharp on a dense screen: the posters are drawn at most 52px across.
 export const IMG_BASE = "https://image.tmdb.org/t/p/w185";
 
+// TMDB serves an image at a set of fixed widths. A box that draws one larger asks for one of
+// the larger ones, or the browser scales 185px up and it looks it. A poster is upright and a
+// backdrop is wide, and both are addressed this way.
+export const imageAt = (path, width) =>
+  path ? `https://image.tmdb.org/t/p/w${width}${path}` : "";
+
 // The cache in front of the Worker is keyed on the whole address, so a request with no
 // parameters must not carry an empty `?`: that would be a second key for the same answer.
 const get = async (path, params = {}) => {
@@ -90,7 +96,7 @@ export const fetchRecommendations = async (id) => {
   return (data.results || []).map((result) => showRow(result, names));
 };
 
-const episodesOf = async (id, number) => {
+export const episodesOf = async (id, number) => {
   try {
     const season = await get(`/tv/${id}/season/${number}`);
     return (season.episodes || []).map(episodeRef).filter(Boolean);
@@ -107,6 +113,9 @@ export const fetchRecord = async (id, existing) => {
     .map((season) => ({
       number: season.season_number,
       episodeCount: season.episode_count,
+      // What everyone made of that season. It arrives with the show, and it is the one
+      // number that says whether a series falls off before you commit to it.
+      score: season.vote_average || null,
     }));
 
   const currentSeason = existing?.currentSeason ?? (seasons[0]?.number || 1);
@@ -131,7 +140,12 @@ export const fetchRecord = async (id, existing) => {
     id: details.id,
     name: details.name,
     posterPath: details.poster_path,
+    // A still from the show, sixteen by nine. A poster is the wrong shape for a wide box.
+    backdropPath: details.backdrop_path,
+    tagline: details.tagline || "",
+    vote: details.vote_average || null,
     network: details.networks?.[0]?.name || "",
+    networkLogo: details.networks?.[0]?.logo_path || "",
     tvStatus: details.status || "",
     seasons,
     episodes,

@@ -1,4 +1,4 @@
-import { supabase } from "./supabase.js";
+import { client } from "./supabase.js";
 
 // Who is signed in, and the two ways to change that. Alpine reads it as x-data="account".
 export const account = () => ({
@@ -7,16 +7,17 @@ export const account = () => ({
   note: "",
   user: null,
 
-  init() {
+  async init() {
+    const auth = (await client()).auth;
     // This runs once with the session read back from storage, which is what keeps a reload
     // signed in, and again on every sign in and sign out.
-    supabase.auth.onAuthStateChange((_, session) => {
+    auth.onAuthStateChange((_, session) => {
       this.user = session?.user ?? null;
     });
   },
 
   async signIn() {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await (await client()).auth.signInWithPassword({
       email: this.email,
       password: this.password,
     });
@@ -24,7 +25,7 @@ export const account = () => ({
   },
 
   async signUp() {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await (await client()).auth.signUp({
       email: this.email,
       password: this.password,
     });
@@ -37,7 +38,7 @@ export const account = () => ({
   },
 
   async signOut() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await (await client()).auth.signOut();
     this.report(error);
   },
 

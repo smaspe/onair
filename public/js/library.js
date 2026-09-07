@@ -1,5 +1,5 @@
 import { blank, loadShows, saveShows } from "./storage.js";
-import { fetchRecord } from "./tmdb.js";
+import { episodesOf, fetchRecord } from "./tmdb.js";
 import { bury, follow, onSession, pull, push, watchedOf } from "./sync.js";
 import {
   allWatched,
@@ -121,6 +121,13 @@ export const library = {
 
   async refresh() {
     await Promise.all(Object.keys(this.shows).map((id) => this.reload(id)));
+  },
+
+  // A record carries the episodes of the seasons it was fetched for. A reader who looks at
+  // another season asks TMDB for that one, and it is kept for as long as the record is.
+  async openSeason(show, number) {
+    if (show.episodes.some((episode) => episode.season === number)) return;
+    show.episodes = [...show.episodes, ...(await episodesOf(show.id, number))];
   },
 
   step(show, move) {
