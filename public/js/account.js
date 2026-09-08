@@ -1,7 +1,9 @@
 import { client } from "./supabase.js";
 
-// Who is signed in, and the two ways to change that. Alpine reads it as x-data="account".
-export const account = () => ({
+// Who is signed in, and the two ways to change that. Alpine reaches it as $store.account.
+// The masthead and the sign-in dialog both read it, and they sit in different places on the
+// page because a dialog cannot draw from inside a sticky header.
+export const account = {
   email: "",
   password: "",
   note: "",
@@ -47,4 +49,4 @@ export const account = () => ({
     this.note = error ? error.message : "";
     this.password = "";
   },
-});
+};

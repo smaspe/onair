@@ -7,7 +7,7 @@ const TABLE = "progress";
 let userId = null;
 
 // `updated_at` is left out on purpose: the table sets it from one clock, so a device with a
-// wrong clock cannot win a conflict. `imdb_id` stays null until the proxy asks TMDB for it.
+// wrong clock cannot win a conflict.
 const rowOf = (show) => ({
   user_id: userId,
   show_id: Number(show.id),

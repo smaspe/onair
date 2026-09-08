@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
     />
     <link rel="stylesheet" href="shelf.css" />
 
@@ -52,10 +52,12 @@
     <script type="module" src="shelf.js"></script>
   </head>
 
-  <body x-data="shelf">
+  <!-- Signing in closes the dialog that asked for it. The effect sits on the page, not on the
+   dialog, so opening the dialog while already signed in does not shut it again. -->
+  <body x-data="shelf" x-effect="$store.account.user && (joining = false)">
     <!-- The account lives in the masthead, which stays put. A shelf of forty shows is a long
      way to scroll for a thing you are meant to notice once. -->
-    <header x-data="account" x-effect="user && (joining = false)">
+    <header>
       <div class="wrap top">
         <span class="logo"><img src="mark.svg" alt="" />ONAIR</span>
         <div class="grow"></div>
@@ -69,16 +71,28 @@
         </button>
         <button
           class="acct"
-          :class="{ on: user }"
+          :class="{ on: $store.account.user }"
           x-cloak
           @click="joining = true"
-          :title="user ? `Signed in as ${user.email}` : 'Sync your shows across devices'"
-          x-text="user ? 'Synced' : 'Sync'"
+          :title="$store.account.user ? `Signed in as ${$store.account.user.email}` : 'Sync your shows across devices'"
+          x-text="$store.account.user ? 'Synced' : 'Sync'"
         ></button>
+        <div class="lamps" role="group" aria-label="Theme">
+          <template x-for="choice in themes" :key="choice.name">
+            <button
+              class="lamp"
+              @click="pick(choice.value)"
+              :aria-pressed="theme === choice.value"
+              :aria-label="choice.name"
+              :title="choice.name"
+              x-text="choice.mark"
+            ></button>
+          </template>
+        </div>
       </div>
 
-      <!-- The four states a show can be in, plus what you gave up on. The old word "caught up"
-       covered three of these at once. -->
+      <!-- One tab for each state a tracked show can be in, and one for what the shelf
+       suggests. The count says how much is on each shelf before you open it. -->
       <nav class="wrap tabs" x-cloak>
         <template x-for="state in $states" :key="state.key">
           <button
@@ -100,73 +114,68 @@
         </button>
       </nav>
 
-      <!-- Asking for an account is a whole decision, so it gets the room to explain itself
-       and does not crowd the shelf while nobody is asking. -->
-      <template x-if="joining">
-        <div class="veil" @click.self="joining = false">
-          <div class="gate" role="dialog" aria-modal="true" aria-labelledby="why">
-            <button class="shut" @click="joining = false" aria-label="Close">✕</button>
-
-            <template x-if="user">
-              <div>
-                <h2 id="why">Your shows are syncing</h2>
-                <p class="why">
-                  Signed in as <b x-text="user.email"></b>. Everything you mark is kept on
-                  every device you sign in on.
-                </p>
-                <button class="btn" @click="signOut()">Sign out</button>
-              </div>
-            </template>
-
-            <template x-if="!user">
-              <div>
-                <h2 id="why">Sync your shows across devices</h2>
-                <p class="why">
-                  What you watch is kept in this browser. An account keeps it together on
-                  your phone, your laptop, and anything else you sign in on.
-                </p>
-
-                <form @submit.prevent="signIn()">
-                  <label>
-                    Email
-                    <input
-                      type="email"
-                      x-model="email"
-                      autocomplete="email"
-                      placeholder="you@example.com"
-                      required
-                    />
-                  </label>
-                  <label>
-                    Password
-                    <input
-                      type="password"
-                      x-model="password"
-                      autocomplete="current-password"
-                      placeholder="at least eight characters"
-                      required
-                    />
-                  </label>
-
-                  <p class="wrong" x-show="note" x-text="note"></p>
-
-                  <div class="two">
-                    <button class="btn keep">Sign in</button>
-                    <button class="btn" type="button" @click="signUp()">
-                      Create an account
-                    </button>
-                  </div>
-                </form>
-
-                <p class="small">
-                  Email and a password, nothing else. No confirmation mail to wait for.
-                </p>
-              </div>
-            </template>
-          </div>
-        </div>
-      </template>
     </header>
+
+    <!-- Asking for an account is a whole decision, so it gets the room to explain itself
+     and does not crowd the shelf while nobody is asking. It stands on the page rather than in
+     the masthead: the masthead paints on its own layer, and a dialog inside it would draw
+     under the detail sheet. -->
+    <template x-if="joining">
+      <div class="veil" @click.self="joining = false">
+        <div class="gate" role="dialog" aria-modal="true" aria-labelledby="why">
+          <button class="shut" @click="joining = false" aria-label="Close">✕</button>
+
+          <template x-if="$store.account.user">
+            <div>
+              <h2 id="why">Synced</h2>
+              <p class="why"><b x-text="$store.account.user.email"></b></p>
+              <button class="btn" @click="$store.account.signOut()">Sign out</button>
+            </div>
+          </template>
+
+          <template x-if="!$store.account.user">
+            <div>
+              <h2 id="why">Sync across devices</h2>
+              <p class="why">Your shows are in this browser only.</p>
+
+              <form @submit.prevent="$store.account.signIn()">
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    x-model="$store.account.email"
+                    autocomplete="email"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </label>
+                <label>
+                  Password
+                  <input
+                    type="password"
+                    x-model="$store.account.password"
+                    autocomplete="current-password"
+                    placeholder="at least eight characters"
+                    required
+                  />
+                </label>
+
+                <p class="wrong" x-show="$store.account.note" x-text="$store.account.note"></p>
+
+                <div class="two">
+                  <button class="btn keep">Sign in</button>
+                  <button class="btn" type="button" @click="$store.account.signUp()">
+                    Create an account
+                  </button>
+                </div>
+              </form>
+
+              <p class="small">No confirmation email.</p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
 
     <!-- Searching is a way in, not a row on the shelf, so it happens over the page. -->
     <div class="veil" x-show="finding" x-cloak @click.self="finding = false">
@@ -176,7 +185,8 @@
             type="search"
             x-ref="query"
             x-model="query"
-            placeholder="Search for a show, then press return…"
+            @input="typed()"
+            placeholder="Search for a show…"
             aria-label="Search for a show to track"
             autocomplete="off"
           />
@@ -245,10 +255,13 @@
 
       <div class="grid" x-cloak>
         <template x-for="show in showing" :key="show.id">
-          <!-- A suggestion is not tracked, so it opens the preview the search results open.
-           The card is two controls, not one: the poster opens the show, and the tick in the
-           corner marks the next episode. -->
-          <div class="card">
+          <!-- The whole card is one control, and it opens the show. A suggestion is not
+           tracked, so it opens the same sheet a search result opens. -->
+          <div
+            class="card"
+            :data-show="show.id"
+            :class="{ arrived: arrived === show.id }"
+          >
             <button
               class="open"
               @click="tab === 'discover' ? look(show.id) : look_at(show.id)"
@@ -272,44 +285,19 @@
               ></span>
               <span class="meter"><i :style="`width:${through(show)}%`"></i></span>
             </span>
-              <h3 x-text="show.name"></h3>
+              <h3 x-text="title(show)"></h3>
               <p x-text="caption(show)"></p>
             </button>
-
-            <!-- Pointer devices only. A poster on a phone is 117px wide and cannot hold two
-             targets a thumb can hit apart; there the sheet is how an episode is marked. -->
-            <button
-              class="tick"
-              x-show="tab !== 'discover' && behind(show)"
-              @click="marked === show.id ? undo(show) : mark(show)"
-              :class="{ back: marked === show.id }"
-              :title="marked === show.id ? 'Undo' : `Mark ${nextCode(show)} watched`"
-              :aria-label="marked === show.id ? 'Undo' : `Mark ${nextCode(show)} watched`"
-              x-text="marked === show.id ? '↶' : '✓'"
-            ></button>
           </div>
         </template>
       </div>
 
-      <p class="none" x-show="!showing.length" x-cloak>Nothing on this shelf.</p>
+      <p class="none" x-show="bare" x-cloak>Nothing on this shelf.</p>
     </main>
 
     <div class="wrap">
-      <!-- The theme is chosen once and then left alone, so it sits here rather than competing
-       with search and the account for the masthead. -->
+      <!-- Below the shelf, because a backup is something you go looking for. -->
       <footer x-cloak>
-        <div class="lamps" role="group" aria-label="Theme">
-          <template x-for="choice in themes" :key="choice.name">
-            <button
-              class="lamp"
-              @click="pick(choice.value)"
-              :aria-pressed="theme === choice.value"
-              :aria-label="choice.name"
-              :title="choice.name"
-              x-text="choice.mark"
-            ></button>
-          </template>
-        </div>
         <div class="grow"></div>
 
         <!-- A browser is not the only copy. The file carries the watch data and nothing that
@@ -351,16 +339,17 @@
             :style="`--hue:${hue(show)};${hero(show) ? `background-image:url('${hero(show)}')` : ''}`"
           >
             <button class="shut" @click="shut()" aria-label="Close">✕</button>
+
+            <!-- The network's mark keeps its own colours, so it sits on a plate of its own in
+             the far corner rather than on the picture beside the words. -->
+            <template x-if="logo(show)">
+              <span class="plate"><img :src="logo(show)" :alt="show.network" /></span>
+            </template>
+
             <div class="lift">
-              <!-- The network's own mark where it has one, and its name where it has not. -->
-              <div class="caps whose">
-                <template x-if="logo(show)">
-                  <img class="badge-net" :src="logo(show)" :alt="show.network" />
-                </template>
-                <span x-show="!logo(show)" x-text="show.network || 'unknown network'"></span>
-                <span x-text="show.tvStatus"></span>
-              </div>
-              <h2 x-text="show.name"></h2>
+              <div class="caps" x-text="`${show.network || 'unknown network'} · ${show.tvStatus}`"></div>
+              <h2 x-text="title(show)"></h2>
+              <div class="also" x-show="translated(show)" x-text="translated(show)"></div>
               <div class="tag" x-show="show.tagline" x-text="show.tagline"></div>
               <div
                 class="sub"
@@ -386,14 +375,10 @@
               ></span>
             </div>
 
-            <!-- The one thing a reader most often came here to do, said as the thing it does
-             rather than as a count to interpret. -->
-            <template x-if="tracked && behind(show)">
-              <button class="next" @click="$store.library.watchNext(show)">
-                <span x-text="`Watched ${nextCode(show)}`"></span>
-                <span class="rest" x-text="`${behind(show)} available`"></span>
-              </button>
-            </template>
+            <div class="line" x-show="behind(show)">
+              <b x-text="`${behind(show)} available`"></b>
+              <span x-text="nextCode(show)"></span>
+            </div>
             <div class="line" x-show="show.upcoming.length">
               <b>Coming up</b>
               <span
@@ -465,7 +450,14 @@
                       class="epi"
                       :class="{ seen: tracked && season.watched >= episode.episode }"
                       :disabled="!tracked || episode.airDate > today()"
-                      @click="watchTo(show, season.number, episode.episode)"
+                      @click="
+                        watchTo(
+                          show,
+                          season.number,
+                          episode.episode,
+                          season.watched >= episode.episode,
+                        )
+                      "
                     >
                       <span
                         class="tick"

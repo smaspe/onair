@@ -3,9 +3,6 @@ import { nextWatched } from "./model/progress.js";
 // The Worker on this origin holds the TMDB key and forwards these paths. Same origin, so
 // no CORS, and no key ever reaches the browser.
 const BASE = "/api";
-// Wide enough to stay sharp on a dense screen: the posters are drawn at most 52px across.
-export const IMG_BASE = "https://image.tmdb.org/t/p/w185";
-
 // TMDB serves an image at a set of fixed widths. A box that draws one larger asks for one of
 // the larger ones, or the browser scales 185px up and it looks it. A poster is upright and a
 // backdrop is wide, and both are addressed this way.
@@ -25,6 +22,8 @@ const get = async (path, params = {}) => {
 const showRow = (result, names) => ({
   id: result.id,
   name: result.name,
+  originalName: result.original_name || "",
+  originalLanguage: result.original_language || "",
   posterPath: result.poster_path,
   year: result.first_air_date?.slice(0, 4) || "—",
   vote: result.vote_average,
@@ -72,21 +71,14 @@ const episodeRef = (episode) => {
   };
 };
 
-// TMDB names the genres once; recommendations only carry their ids.
+// TMDB names the genres once; recommendations only carry their ids. Every suggested show asks
+// for the names at the same moment, so what is held is the request and not its answer: a
+// second caller waits for the first request rather than making one of its own.
 let genres = null;
-const genreNames = async () => {
-  if (!genres) {
-    try {
-      const data = await get("/genre/tv/list");
-      genres = new Map(
-        (data.genres || []).map((genre) => [genre.id, genre.name]),
-      );
-    } catch {
-      genres = new Map();
-    }
-  }
-  return genres;
-};
+const genreNames = () =>
+  (genres ??= get("/genre/tv/list")
+    .then((data) => new Map((data.genres || []).map((genre) => [genre.id, genre.name])))
+    .catch(() => new Map()));
 
 export const fetchRecommendations = async (id) => {
   const [data, names] = await Promise.all([
@@ -139,6 +131,10 @@ export const fetchRecord = async (id, existing) => {
   return {
     id: details.id,
     name: details.name,
+    // What the show is called where it was made. TMDB translates the name to the language of
+    // the request, so a French series arrives as "The Bureau" unless this is read.
+    originalName: details.original_name || "",
+    originalLanguage: details.original_language || "",
     posterPath: details.poster_path,
     // A still from the show, sixteen by nine. A poster is the wrong shape for a wide box.
     backdropPath: details.backdrop_path,

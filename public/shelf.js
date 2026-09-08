@@ -12,24 +12,33 @@ import {
   nextWatched,
   titleAt,
 } from "./js/model/progress.js";
-import { STATES, groupsOf, stateOf, totalEpisodes } from "./state.js";
+import { STATES, groupsOf, stateOf, titleOf, totalEpisodes } from "./state.js";
 
 // Written out where there is room for it, and shortened where there is not. `S01E02` is a
 // database key, not something to read.
 const code = (at) => `Season ${at.season} - Episode ${at.episode}`;
 const brief = (at) => `S${at.season} - E${at.episode}`;
-const today = () => new Date().toISOString().slice(0, 10);
+
+// An air date is a calendar day, not an instant. `new Date("2026-09-10")` is midnight at
+// Greenwich, which is still the ninth for a reader in the Americas, so the day is built in the
+// reader's own time and compared against their own date.
+const pad = (number) => String(number).padStart(2, "0");
+const dayOf = (date) => new Date(`${date}T00:00:00`);
+const today = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
 
 const airs = (date) => {
-  const days = Math.round((new Date(date) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  const days = Math.round((dayOf(date) - new Date().setHours(0, 0, 0, 0)) / 86400000);
   if (days <= 0) return "today";
   if (days === 1) return "tomorrow";
   if (days < 7) return `in ${days} days`;
-  return new Date(date).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return dayOf(date).toLocaleDateString(undefined, { day: "numeric", month: "short" });
 };
 
 const aired = (date) =>
-  new Date(date).toLocaleDateString(undefined, {
+  dayOf(date).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -63,6 +72,14 @@ const shelf = () => ({
       ? this.$store.recommended.visible
       : this.groups[this.tab];
   },
+  // Discover says why it has nothing in its own words, so the shelf does not say it again
+  // underneath.
+  get bare() {
+    return (
+      !this.showing.length &&
+      !(this.tab === "discover" && this.$store.recommended.note)
+    );
+  },
 
   // Suggestions cost a request for every show you watch, so nothing is asked until the tab is
   // opened. A suggestion opens the same sheet a shelved show does.
@@ -78,12 +95,16 @@ const shelf = () => ({
   },
 
   tile: (show) => imageAt(show.posterPath, 342),
+  title: titleOf,
+  // Shown beside the original title only when the two differ.
+  translated: (show) =>
+    show.originalName && show.originalName !== show.name ? show.name : "",
 
   // A show with no artwork, or artwork that does not load, stands as its own initials on a
   // colour taken from its id, so the shelf keeps its shape and each gap is still one show.
   hue: (show) => (Number(show.id) * 61) % 360,
   initials: (show) =>
-    (show.name || "?")
+    (titleOf(show) || "?")
       .split(/\s+/)
       .slice(0, 2)
       .map((word) => word[0])
@@ -158,35 +179,50 @@ const shelf = () => ({
     }));
   },
 
-  // The tick that has just been pressed, so it can offer to take it back. A mis-click on a
-  // grid of posters is likely enough that the way out has to be where the click was.
-  marked: null,
-
-  mark(show) {
-    this.$store.library.watchNext(show);
-    this.marked = show.id;
-    clearTimeout(this.forget);
-    this.forget = setTimeout(() => (this.marked = null), 4000);
+  // An episode you have seen is a place to stop: pressing it puts the mark just before it, so
+  // the first episode of a show can be unwatched. An episode you have not seen is a place to
+  // reach: pressing it marks everything up to and including it.
+  watchTo(show, season, episode, watched) {
+    const at = watched ? this.before(show, season, episode) : { season, episode };
+    this.$store.library.markTo(show, at.season, at.episode);
   },
 
-  undo(show) {
-    this.$store.library.unwatch(show);
-    this.marked = null;
-    clearTimeout(this.forget);
+  before(show, season, episode) {
+    if (episode > 1) return { season, episode: episode - 1 };
+    const earlier = [...show.seasons].reverse().find((s) => s.number < season);
+    return earlier
+      ? { season: earlier.number, episode: earlier.episodeCount }
+      : { season, episode: 0 };
   },
 
-  watchTo(show, season, episode) {
-    show.currentSeason = season;
-    show.currentEpisode = episode;
-    this.$store.library.save(show);
+  // Typing settles before the search runs, so a title costs one request rather than one per
+  // letter. The number that comes back names the search it belongs to, and a slow answer to
+  // an older search is dropped.
+  asked: 0,
+  pending: 0,
+
+  typed() {
+    clearTimeout(this.pending);
+    if (!this.query.trim()) {
+      this.results = [];
+      this.note = "";
+      return;
+    }
+    this.pending = setTimeout(() => this.run(), 600);
   },
 
   async run() {
+    clearTimeout(this.pending);
+    if (!this.query.trim()) return;
+    const mine = ++this.asked;
     this.note = "searching…";
     try {
-      this.results = await searchTv(this.query);
-      this.note = this.results.length ? "" : "nothing found";
+      const found = await searchTv(this.query);
+      if (mine !== this.asked) return;
+      this.results = found;
+      this.note = found.length ? "" : "nothing found";
     } catch {
+      if (mine !== this.asked) return;
       this.results = [];
       this.note = "search failed";
     }
@@ -210,6 +246,11 @@ const shelf = () => ({
 
   // The tracked record replaces the previewed one before the preview goes, or the sheet has
   // no show to draw for as long as the fetch takes and shuts itself in the meantime.
+  // Marks the show that has just arrived, so the shelf can say where it landed. A shelf sorts
+  // by title, so a new poster appears wherever its name puts it and not at the end.
+  arrived: null,
+  fading: 0,
+
   async track() {
     const id = this.preview.id;
     await this.$store.library.add(id);
@@ -217,6 +258,19 @@ const shelf = () => ({
     this.unfolded = [this.$store.library.shows[id]?.currentSeason].filter(Boolean);
     this.preview = null;
     this.tab = "available";
+    this.arrived = id;
+    clearTimeout(this.fading);
+    this.fading = setTimeout(() => (this.arrived = null), 4000);
+  },
+
+  // Once the sheet is closed, the card it left behind is brought into view.
+  reveal() {
+    if (!this.arrived) return;
+    this.$nextTick(() =>
+      document
+        .querySelector(`[data-show="${this.arrived}"]`)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" }),
+    );
   },
 
   shut() {
@@ -225,6 +279,7 @@ const shelf = () => ({
     this.open = null;
     this.preview = null;
     this.unfolded = [];
+    this.reveal();
   },
 
   // The season being watched starts unfolded, but it is unfolded like any other: put in the
@@ -269,8 +324,8 @@ const shelf = () => ({
 
 Alpine.store("library", library);
 Alpine.store("recommended", recommended);
+Alpine.store("account", account);
 Alpine.data("shelf", shelf);
-Alpine.data("account", account);
 Alpine.data("transfer", transfer);
 Alpine.magic("states", () => STATES);
 Alpine.magic("isEnded", () => isEnded);

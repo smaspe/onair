@@ -1,9 +1,14 @@
 import { fetchRecommendations } from "./tmdb.js";
-import { droppedShows, trackedShows } from "./model/lists.js";
 import { episodesWatched } from "./model/progress.js";
 import { rank, weightOf } from "./model/recommend.js";
 
 const SHOWN = 50;
+
+const trackedShows = (shows) =>
+  Object.values(shows).filter((show) => !show.dropped);
+
+const droppedShows = (shows) =>
+  Object.values(shows).filter((show) => show.dropped);
 
 // What the shows you watch suggest. Alpine reaches it as $store.recommended.
 export const recommended = {
@@ -25,7 +30,7 @@ export const recommended = {
       .slice(0, SHOWN);
   },
 
-  // Suggestions cost a request per show, so app.js only asks once the view is opened.
+  // Suggestions cost a request per show, so nothing is asked until the tab is opened.
   async load(shows) {
     if (this.loaded) return;
 

@@ -5,11 +5,14 @@
   --panel: #ffffff;
   --rule: #dbe1e5;
   --ink: #11171a;
-  --mute: #5c6d76;
+  --mute: #6a7c85;
   --accent: #1d3e77;
   --signal: #9a6206;
   --shade: rgba(17, 23, 26, 0.08);
   --danger: #b8402f;
+  /* The height of a control in the masthead. Search, the account and the theme are one row of
+     actions, and a row of actions is one height. */
+  --act: 2.25rem;
 }
 /* The dark tokens are written twice on purpose. The media query serves the reader who has
    chosen nothing, and the attribute serves the reader who has, so a pinned theme beats the
@@ -45,12 +48,12 @@ body {
   margin: 0;
   background: var(--ground);
   color: var(--ink);
-  font: 400 15px/1.55 "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font: 400 15px/1.55 "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 [x-cloak] { display: none !important; }
 button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 .wrap { width: min(100% - 2.5rem, 68rem); margin-inline: auto; }
@@ -70,14 +73,16 @@ header {
 .logo {
   display: flex; align-items: center; gap: 0.5rem;
   font-size: 0.95rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--ink); text-decoration: none;
 }
-.logo:hover { color: var(--accent); }
 .logo img { width: 1.3rem; height: 1.3rem; }
+
+/* The three actions stand at one height and on one baseline, so the row reads as three ways to
+   act and not as three unrelated things. Each keeps its own width, which is what it holds. */
+.find, .acct, .lamps { height: var(--act); flex: none; }
 .find {
   display: inline-flex; align-items: center; gap: 0.55rem;
   background: var(--ground); border: 1px solid var(--rule);
-  border-radius: 6px; padding: 0.38rem 0.8rem; color: var(--mute); font-size: 0.9rem;
+  border-radius: 6px; padding: 0 0.8rem; color: var(--mute); font-size: 0.9rem;
 }
 .find:hover { color: var(--ink); border-color: var(--accent); }
 .find svg { width: 0.95rem; height: 0.95rem; flex: none; }
@@ -89,9 +94,9 @@ header {
 /* A finger is not a cursor. A device with no hardware keyboard cannot press the shortcut, and
    wants a target it can hit without aiming. */
 @media (hover: none) and (pointer: coarse) {
+  :root { --act: 2.75rem; }
   .find kbd { display: none; }
-  .find, .acct { min-height: 2.75rem; padding-inline: 0.9rem; }
-  .lamp { width: 2.75rem; height: 2.75rem; }
+  .find, .acct { padding-inline: 0.9rem; }
 }
 
 /* ---- finding a show, over the shelf ---- */
@@ -143,24 +148,15 @@ main { padding: 1.6rem 0 4rem; }
   width: 100%;
 }
 
-/* The tick sits diagonally opposite the count, at the far corner from where a poster is
-   pressed to open it, and it appears only while the card is under the pointer. */
-.tick {
-  position: absolute; left: 0.35rem; bottom: 2.9rem;
-  width: 1.75rem; height: 1.75rem; border-radius: 6px;
-  display: grid; place-items: center; font-size: 0.9rem;
-  color: #fff; background: color-mix(in srgb, var(--accent) 82%, #000);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  opacity: 0; transition: opacity 0.12s ease;
+/* A show that has just been added is lit for a few seconds, because the shelf sorts by title
+   and its poster lands wherever the name puts it. */
+.card.arrived .art { box-shadow: 0 0 0 2px var(--accent), 0 0 22px 2px var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .card.arrived .art { animation: settle 4s ease-out forwards; }
 }
-.card:hover .tick, .tick:focus-visible { opacity: 1; }
-.tick:hover { background: var(--accent); }
-.tick.back { opacity: 1; background: var(--signal); }
-
-/* Without a pointer there is nothing to hover, so the tick never appears and the sheet is
-   the way in. */
-@media (hover: none) {
-  .tick { display: none; }
+@keyframes settle {
+  0% { box-shadow: 0 0 0 2px var(--accent), 0 0 26px 4px var(--accent); }
+  100% { box-shadow: 0 1px 2px var(--shade), 0 10px 22px var(--shade); }
 }
 /* Every box that holds artwork paints the stand-in first, and the picture covers it when there
    is one. A poster that is missing, or that fails to load, leaves the stand-in showing. */
@@ -199,7 +195,11 @@ main { padding: 1.6rem 0 4rem; }
 }
 .meter { position: absolute; inset: auto 0 0 0; height: 4px; background: rgba(0, 0, 0, 0.35); }
 .meter i { display: block; height: 100%; background: #fff; }
-.card h3 { margin: 0; font-size: 0.97rem; font-weight: 600; line-height: 1.3; }
+/* Room for two lines of title whether or not the title needs them, so the captions along a
+   row of posters sit on one line instead of stepping around the long names. */
+.card h3 {
+  margin: 0; font-size: 0.97rem; font-weight: 600; line-height: 1.3; min-height: 2.6em;
+}
 .card p {
   margin: 0; color: var(--mute); font-size: 0.8rem;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -238,13 +238,20 @@ main { padding: 1.6rem 0 4rem; }
   letter-spacing: -0.015em; text-wrap: balance; color: #fff;
 }
 .hero .caps { color: rgba(255, 255, 255, 0.78); }
-.whose { display: flex; align-items: center; gap: 0.6rem; }
-/* Network marks are supplied as flat artwork, most of them black. Forcing them white keeps
-   them legible on the scrim, at the cost of the ones that carry a colour of their own. */
-.badge-net {
-  height: 1rem; width: auto; max-width: 5.5rem; object-fit: contain;
-  filter: brightness(0) invert(1); opacity: 0.9;
+.hero .also { color: rgba(255, 255, 255, 0.72); font-size: 0.85rem; margin-bottom: 0.15rem; }
+
+/* Network marks come as artwork of every shape and colour, all 154px wide. A plate carries
+   them in their own colours, and a box they fit inside keeps a square mark and a long one at
+   comparable weight. */
+.plate {
+  position: absolute; z-index: 1; top: 0.9rem; left: 1.5rem;
+  display: inline-flex; padding: 0.45rem;
+  background: rgba(255, 255, 255, 0.94); border-radius: 5px;
 }
+/* The plate takes the size of the mark inside it. Both bounds are set because the marks come
+   at one width and every height: a disc and a wordmark need different limits to carry the
+   same weight. */
+.plate img { max-height: 1.9rem; max-width: 4.5rem; width: auto; height: auto; }
 .hero .sub { color: rgba(255, 255, 255, 0.82); font-size: 0.88rem; }
 .hero .tag {
   color: rgba(255, 255, 255, 0.9); font-size: 0.92rem; font-style: italic;
@@ -279,15 +286,6 @@ main { padding: 1.6rem 0 4rem; }
   display: flex; justify-content: space-between; gap: 1rem;
   padding: 0.42rem 0; border-bottom: 1px dotted var(--rule); font-size: 0.9rem;
 }
-.next {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
-  width: 100%; margin: 1rem 0 0.2rem; padding: 0.7rem 0.85rem;
-  border: 1px solid var(--accent); border-radius: 6px; font-weight: 500;
-  color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
-}
-.next:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
-.next .rest { font-size: 0.8rem; font-weight: 400; opacity: 0.8; }
-
 .line b { font-weight: 600; }
 .line span:last-child { color: var(--mute); }
 .rated { display: inline-flex; align-items: center; gap: 0.5rem; }
@@ -324,8 +322,7 @@ main { padding: 1.6rem 0 4rem; }
 .epi:hover:enabled { background: var(--ground); }
 .epi .tick { color: var(--accent); font-weight: 700; }
 .epi .no { color: var(--mute); font-size: 0.8rem; }
-.epi .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.epi .dt { color: var(--mute); font-size: 0.78rem; }
+.epi .dt { color: var(--mute); font-size: 0.78rem; white-space: nowrap; }
 .epi:disabled { opacity: 0.5; cursor: default; }
 
 .doers {
@@ -351,14 +348,13 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);
   color: var(--ink); width: 9rem; }
 
-/* Three joined buttons rather than one that cycles, so the theme in force is the one that
-   looks pressed instead of something to infer from a glyph. */
+/* Three joined buttons, so the theme in force is the one that looks pressed. */
 .lamps {
-  display: inline-flex; flex: none; overflow: hidden;
+  display: inline-flex; overflow: hidden;
   border: 1px solid var(--rule); border-radius: 6px;
 }
 .lamp {
-  width: 1.95rem; height: 1.95rem; display: grid; place-items: center;
+  width: var(--act); display: grid; place-items: center;
   font-size: 0.9rem; color: var(--mute); background: var(--ground);
 }
 .lamp + .lamp { border-left: 1px solid var(--rule); }
@@ -369,8 +365,8 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
 
 /* Signed out it is an offer, signed in it is a state. Same slot, same modal behind it. */
 .acct {
-  border: 1px solid var(--accent); border-radius: 6px; padding: 0.38rem 0.8rem;
-  font-size: 0.9rem; color: var(--accent); flex: none;
+  border: 1px solid var(--accent); border-radius: 6px; padding: 0 0.8rem;
+  font-size: 0.9rem; color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .acct:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
@@ -398,11 +394,11 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   text-transform: uppercase; color: var(--mute);
 }
 .gate input {
-  font: inherit; font-size: 0.95rem; padding: 0.5rem 0.6rem; width: 100%;
+  font: inherit; font-size: 0.95rem; font-weight: 400; padding: 0.5rem 0.6rem; width: 100%;
   border: 1px solid var(--rule); border-radius: 6px;
   background: var(--ground); color: var(--ink); text-transform: none; letter-spacing: normal;
 }
-.gate input:focus-visible { border-color: var(--accent); }
+.gate input:focus-visible { border-color: var(--accent); outline: none; }
 .gate .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
 .gate .two .btn { padding: 0.5rem; text-align: center; }
 .gate .wrong { margin: 0; color: var(--danger); font-size: 0.86rem; }
@@ -418,11 +414,17 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   .art .stand { font-size: 1.1rem; }
   .badge { min-width: 1.2rem; height: 1.2rem; font-size: 0.68rem; }
 
-  /* The masthead has to be one line, so search keeps only its glyph and everything tightens.
-     The tabs scroll sideways rather than stacking a second row on top of the shelf. */
+  /* The masthead has to hold four things on one line, so search keeps its glyph and drops the
+     words. The tabs scroll sideways rather than stacking a second row on top of the shelf. */
   .top { gap: 0.6rem; padding: 0.55rem 0 0.5rem; }
   .logo { font-size: 0.85rem; letter-spacing: 0.16em; }
   .logo img { width: 1.1rem; height: 1.1rem; }
+  .find .say, .find kbd { display: none; }
+  .find { width: var(--act); padding-inline: 0; justify-content: center; }
+  .find svg { width: 1.15rem; height: 1.15rem; }
+  /* Three squares of the full height do not fit beside the wordmark, the search and the
+     account. A segment keeps the height a thumb needs and gives back the width. */
+  .lamp { width: 2.25rem; }
 
   /* The last tab fades out at the edge rather than being cut off, so a clipped word reads as
      more to scroll to instead of as a mistake. */
