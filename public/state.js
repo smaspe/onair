@@ -1,4 +1,4 @@
-import { episodesBehind, isEnded } from "../js/model/progress.js";
+import { episodesBehind, isEnded } from "./js/model/progress.js";
 
 // The four states a tracked show can be in, and they are four because the old word "caught up"
 // covered three of them: nothing to watch and a date announced, nothing to watch and the show
@@ -28,6 +28,8 @@ export const groupsOf = (shows) => {
   return held;
 };
 
-// How far through the whole run the watcher is, for the bar across each poster.
+// How far through the whole run the watcher is, for the bar across each poster. A suggestion
+// is drawn by the same card and carries no seasons, because it is not tracked and has no
+// progress to show.
 export const totalEpisodes = (show) =>
-  show.seasons.reduce((sum, season) => sum + season.episodeCount, 0);
+  (show.seasons ?? []).reduce((sum, season) => sum + season.episodeCount, 0);

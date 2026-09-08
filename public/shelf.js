@@ -1,15 +1,17 @@
 // Pinned: a version range is served with a ten minute cache, an exact one for a year.
 import Alpine from "https://esm.sh/alpinejs@3.17.0";
-import { library } from "../js/library.js";
-import { account } from "../js/account.js";
-import { fetchRecord, imageAt, searchTv } from "../js/tmdb.js";
+import { library } from "./js/library.js";
+import { account } from "./js/account.js";
+import { recommended } from "./js/recommended.js";
+import { transfer } from "./js/transfer.js";
+import { fetchRecord, imageAt, searchTv } from "./js/tmdb.js";
 import {
   episodesBehind,
   episodesWatched,
   isEnded,
   nextWatched,
   titleAt,
-} from "../js/model/progress.js";
+} from "./js/model/progress.js";
 import { STATES, groupsOf, stateOf, totalEpisodes } from "./state.js";
 
 // Written out where there is room for it, and shortened where there is not. `S01E02` is a
@@ -57,7 +59,16 @@ const shelf = () => ({
     return groupsOf(this.$store.library.shows);
   },
   get showing() {
-    return this.groups[this.tab];
+    return this.tab === "discover"
+      ? this.$store.recommended.visible
+      : this.groups[this.tab];
+  },
+
+  // Suggestions cost a request for every show you watch, so nothing is asked until the tab is
+  // opened. A suggestion opens the same sheet a shelved show does.
+  go(where) {
+    this.tab = where;
+    if (where === "discover") this.$store.recommended.load(this.$store.library.shows);
   },
   get show() {
     return this.preview ?? (this.open ? this.$store.library.shows[this.open] : null);
@@ -97,6 +108,10 @@ const shelf = () => ({
 
   // One line under a poster, saying what would happen next rather than repeating the badge.
   caption(show) {
+    if (this.tab === "discover")
+      return [show.vote ? `★ ${show.vote.toFixed(1)}` : "", show.genres?.[0]]
+        .filter(Boolean)
+        .join(" · ");
     const state = stateOf(show);
     if (state === "available") {
       const at = nextWatched(show);
@@ -141,6 +156,23 @@ const shelf = () => ({
       height: Math.round((season.score / peak) * 100),
       here: season.number === this.show.currentSeason,
     }));
+  },
+
+  // The tick that has just been pressed, so it can offer to take it back. A mis-click on a
+  // grid of posters is likely enough that the way out has to be where the click was.
+  marked: null,
+
+  mark(show) {
+    this.$store.library.watchNext(show);
+    this.marked = show.id;
+    clearTimeout(this.forget);
+    this.forget = setTimeout(() => (this.marked = null), 4000);
+  },
+
+  undo(show) {
+    this.$store.library.unwatch(show);
+    this.marked = null;
+    clearTimeout(this.forget);
   },
 
   watchTo(show, season, episode) {
@@ -236,8 +268,10 @@ const shelf = () => ({
 });
 
 Alpine.store("library", library);
+Alpine.store("recommended", recommended);
 Alpine.data("shelf", shelf);
 Alpine.data("account", account);
+Alpine.data("transfer", transfer);
 Alpine.magic("states", () => STATES);
 Alpine.magic("isEnded", () => isEnded);
 Alpine.start();

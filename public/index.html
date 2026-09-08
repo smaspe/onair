@@ -3,275 +3,502 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ONAIR — track what you watch</title>
-    <link rel="icon" href="mark.svg" />
-    <link rel="stylesheet" href="styles.css" />
 
-    <!-- A module is only discovered once the module that imports it has been parsed, so the
-     graph loads one level at a time unless the levels are named here. -->
+    <title>ONAIR — track what you watch, one shelf at a time</title>
+    <meta
+      name="description"
+      content="A television tracker: see which episode you are on, what has aired that you have not seen, and when the next one is due. Works without an account; sign in to sync across devices."
+    />
+    <link rel="canonical" href="https://onair.smaspe.workers.dev/" />
+    <meta name="theme-color" content="#f4f6f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1214" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ONAIR" />
+    <meta property="og:title" content="ONAIR — track what you watch" />
+    <meta
+      property="og:description"
+      content="Which episode you are on, what has aired that you have not seen, and when the next one is due."
+    />
+    <meta property="og:url" content="https://onair.smaspe.workers.dev/" />
+    <meta property="og:image" content="https://onair.smaspe.workers.dev/logo.svg" />
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="icon" href="mark.svg" />
+
+    <script>
+      // Before the first paint, so a pinned theme never flashes the other one.
+      try {
+        const held = localStorage.getItem("onair.theme");
+        if (held) document.documentElement.dataset.theme = held;
+      } catch {
+        /* a browser that refuses storage follows the system, which is the default */
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="shelf.css" />
+
     <link rel="preconnect" href="https://esm.sh" crossorigin />
     <link rel="modulepreload" href="js/library.js" />
-    <link rel="modulepreload" href="js/recommended.js" />
-    <link rel="modulepreload" href="js/search.js" />
-    <link rel="modulepreload" href="js/card.js" />
-    <link rel="modulepreload" href="js/parts.js" />
     <link rel="modulepreload" href="js/tmdb.js" />
     <link rel="modulepreload" href="js/storage.js" />
     <link rel="modulepreload" href="js/model/progress.js" />
-    <link rel="modulepreload" href="js/model/lists.js" />
-
-    <style>
-      [x-cloak] {
-        display: none !important;
-      }
-    </style>
-    <script type="module" src="js/app.js"></script>
+    <link rel="modulepreload" href="./state.js" />
+    <script type="module" src="shelf.js"></script>
   </head>
 
-  <!-- Only what would read wrongly before Alpine runs is hidden. The header, the tabs and the
-   footer are markup, and wait for nothing. -->
-  <body x-data>
-    <header>
-      <!-- The same file the tab icon uses. The words beside it are the wordmark, which is why
-       the mark carries none of its own. -->
-      <h1><img class="mark" src="mark.svg" alt="" />ONAIR</h1>
-
-      <!-- The results hang under the search bar, so a search never leaves the view. -->
-      <form
-        class="search"
-        x-data="search"
-        @submit.prevent="run()"
-        @click.outside="close()"
-        @keydown.escape.window="close()"
-      >
-        <input
-          type="search"
-          x-model="query"
-          aria-label="Search for a show to add"
-          placeholder="Search for a show to add…"
-          autocomplete="off"
-        />
-        <button>Search</button>
-
-        <div class="sheet" x-cloak x-show="results.length || note">
-          <p class="empty" x-show="!results.length" x-text="note"></p>
-
-          <!-- A tag names a file in parts/, and its x-data is what the file reads. -->
-          <template x-for="result in results" :key="result.id">
-            <search-row x-data="{ row: result }"></search-row>
-          </template>
-        </div>
-      </form>
-
-    </header>
-
-    <!-- Each count reads the list its view renders. -->
-    <nav>
-      <a class="tab" href="#shows"
-        >shows <span class="count" x-text="$store.library.trackedCount"></span
-      ></a>
-      <a class="tab" href="#upcoming"
-        >upcoming
-        <span class="count" x-text="$store.library.upcomingCount"></span
-      ></a>
-      <a class="tab" href="#recommended"
-        >recommended
-        <span
-          class="count"
-          x-text="$store.recommended.visible.length || ''"
-        ></span
-      ></a>
-      <a class="tab" href="#dropped"
-        >dropped
-        <span class="count" x-text="$store.library.dropped.length"></span
-      ></a>
-    </nav>
-
-    <main x-cloak>
-      <div class="view" id="shows">
-        <p class="empty" x-show="!$store.library.sections.length">
-          No shows yet. Search above to start tracking one.
-        </p>
-
-        <!-- The browser folds a section; the model only says which one starts folded. -->
-        <template x-for="section in $store.library.sections" :key="section.key">
-          <details class="group" x-init="$el.open = !section.collapsible">
-            <summary>
-              <h2>
-                <span x-text="section.title"></span>
-                <span class="count" x-text="section.shows.length"></span>
-              </h2>
-            </summary>
-
-            <!-- parts/show-card.part.html reads `show` and `airDates`; card() reads the record back
-             from the store, so what the card changes is the record and not a copy. -->
-            <div class="cards">
-              <template x-for="show in section.shows" :key="show.id">
-                <show-card x-data="card(show.id, section.airDates)"></show-card>
-              </template>
-            </div>
-          </details>
-        </template>
-      </div>
-
-      <div class="view" id="upcoming">
-        <p class="empty" x-show="!$store.library.months.length">
-          Nothing scheduled. Refresh the air dates, or add a show that is still
-          running.
-        </p>
-
-        <template x-for="month in $store.library.months" :key="month.title">
-          <section>
-            <h2 x-text="month.title"></h2>
-            <template x-for="episode in month.episodes" :key="episode.key">
-              <div class="ep">
-                <span
-                  class="date"
-                  x-text="$display.formatDate(episode.airDate)"
-                ></span>
-                <span
-                  class="code"
-                  x-text="$display.code(episode.season, episode.episode)"
-                ></span>
-                <span class="label" x-text="episode.label"></span>
-                <span class="episode-title" x-text="episode.title"></span>
-                <span class="dim" x-text="$display.airsIn(episode)"></span>
-              </div>
-            </template>
-          </section>
-        </template>
-      </div>
-
-      <!-- Suggestions, each weighted by what you make of the show that suggests it. -->
-      <div class="view" id="recommended">
-        <p
-          class="empty"
-          x-show="$store.recommended.note"
-          x-text="$store.recommended.note"
-        ></p>
-
-        <section x-show="$store.recommended.items.length">
-          <h2>
-            <span>from the shows you watch</span>
-            <button
-              class="icon"
-              @click="$store.recommended.reload($store.library.shows)"
-              title="Look again"
-            >
-              ↻
-            </button>
-          </h2>
-
-          <div class="filters">
-            <select x-model="$store.recommended.genre">
-              <option value="">every genre</option>
-              <template x-for="genre in $store.recommended.genres" :key="genre">
-                <option :value="genre" x-text="genre"></option>
-              </template>
-            </select>
-
-            <select x-model.number="$store.recommended.minRating">
-              <option value="0">any rating</option>
-              <template x-for="score in [6, 7, 8, 9]" :key="score">
-                <option :value="score" x-text="`★ ${score} and up`"></option>
-              </template>
-            </select>
-
-            <span
-              class="dim"
-              x-text="`${$store.recommended.visible.length} of ${$store.recommended.items.length}`"
-            ></span>
-          </div>
-
-          <p class="empty" x-show="!$store.recommended.visible.length">
-            Nothing matches those filters.
-          </p>
-
-          <!-- parts/suggestion-card.part.html reads `row`, as parts/search-row.part.html does. -->
-          <template x-for="item in $store.recommended.visible" :key="item.id">
-            <suggestion-card x-data="{ row: item }"></suggestion-card>
-          </template>
-        </section>
-      </div>
-
-      <!-- parts/dropped-card.part.html reads `show`, and reaches the delete guard in this scope. -->
-      <div
-        class="view"
-        id="dropped"
-        x-data="droppedList"
-        @hashchange.window="pending = null"
-      >
-        <p class="empty" x-show="!$store.library.dropped.length">
-          Nothing dropped.
-        </p>
-
-        <div class="cards">
-          <template x-for="show in $store.library.dropped" :key="show.id">
-            <dropped-card x-data="card(show.id)"></dropped-card>
-          </template>
-        </div>
-      </div>
-    </main>
-
-    <footer>
-      <!-- One form does both: an address nobody has used yet makes an account, a known one
-       signs in. Where the watch data sits depends on which of the two you are, so the line
-       that says so belongs in the same scope. -->
-      <div class="account" x-cloak x-data="account">
-        <span x-show="!user"
-          >Stored in this browser. Nothing you watch leaves your device.</span
-        >
-        <span x-show="user">On every device you sign in on.</span>
-
-        <form x-show="!user" @submit.prevent="signIn()">
-          <input
-            type="email"
-            x-model="email"
-            aria-label="Email"
-            placeholder="email"
-            autocomplete="email"
-            required
-          />
-          <input
-            type="password"
-            x-model="password"
-            aria-label="Password"
-            placeholder="password"
-            autocomplete="current-password"
-            required
-          />
-          <button>sign in</button>
-          <button type="button" @click="signUp()">sign up</button>
-        </form>
-
-        <span class="who" x-show="user">
-          <span x-text="user?.email"></span>
-          <button @click="signOut()">sign out</button>
-        </span>
-
-        <span class="dim" x-text="note"></span>
-      </div>
-
-      <span class="actions" x-data="transfer">
-        <span class="dim" x-text="note"></span>
-        <button @click="save()" title="Write what you watch to a file">
-          export
+  <body x-data="shelf">
+    <!-- The account lives in the masthead, which stays put. A shelf of forty shows is a long
+     way to scroll for a thing you are meant to notice once. -->
+    <header x-data="account" x-effect="user && (joining = false)">
+      <div class="wrap top">
+        <span class="logo"><img src="mark.svg" alt="" />ONAIR</span>
+        <div class="grow"></div>
+        <button class="find" @click="find()" aria-label="Find a show">
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="6.6" cy="6.6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span class="say">Find a show</span>
+          <kbd>⌘K</kbd>
         </button>
         <button
-          @click="$refs.file.click()"
-          title="Read a file back, in place of what this browser tracks"
+          class="acct"
+          :class="{ on: user }"
+          x-cloak
+          @click="joining = true"
+          :title="user ? `Signed in as ${user.email}` : 'Sync your shows across devices'"
+          x-text="user ? 'Synced' : 'Sync'"
+        ></button>
+      </div>
+
+      <!-- The four states a show can be in, plus what you gave up on. The old word "caught up"
+       covered three of these at once. -->
+      <nav class="wrap tabs" x-cloak>
+        <template x-for="state in $states" :key="state.key">
+          <button
+            @click="go(state.key)"
+            :aria-current="tab === state.key"
+            :title="state.said"
+          >
+            <span x-text="state.label"></span>
+            <span class="n" x-text="groups[state.key].length"></span>
+          </button>
+        </template>
+        <button
+          @click="go('discover')"
+          :aria-current="tab === 'discover'"
+          title="what the shows you watch suggest"
         >
-          import
+          Discover
+          <span class="n" x-text="$store.recommended.visible.length || ''"></span>
         </button>
-        <input
-          type="file"
-          accept="application/json,.json"
-          x-ref="file"
-          hidden
-          @change="open($event)"
-        />
-        <button @click="$store.library.refresh()">Refresh air dates</button>
-      </span>
-    </footer>
+      </nav>
+
+      <!-- Asking for an account is a whole decision, so it gets the room to explain itself
+       and does not crowd the shelf while nobody is asking. -->
+      <template x-if="joining">
+        <div class="veil" @click.self="joining = false">
+          <div class="gate" role="dialog" aria-modal="true" aria-labelledby="why">
+            <button class="shut" @click="joining = false" aria-label="Close">✕</button>
+
+            <template x-if="user">
+              <div>
+                <h2 id="why">Your shows are syncing</h2>
+                <p class="why">
+                  Signed in as <b x-text="user.email"></b>. Everything you mark is kept on
+                  every device you sign in on.
+                </p>
+                <button class="btn" @click="signOut()">Sign out</button>
+              </div>
+            </template>
+
+            <template x-if="!user">
+              <div>
+                <h2 id="why">Sync your shows across devices</h2>
+                <p class="why">
+                  What you watch is kept in this browser. An account keeps it together on
+                  your phone, your laptop, and anything else you sign in on.
+                </p>
+
+                <form @submit.prevent="signIn()">
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      x-model="email"
+                      autocomplete="email"
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </label>
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      x-model="password"
+                      autocomplete="current-password"
+                      placeholder="at least eight characters"
+                      required
+                    />
+                  </label>
+
+                  <p class="wrong" x-show="note" x-text="note"></p>
+
+                  <div class="two">
+                    <button class="btn keep">Sign in</button>
+                    <button class="btn" type="button" @click="signUp()">
+                      Create an account
+                    </button>
+                  </div>
+                </form>
+
+                <p class="small">
+                  Email and a password, nothing else. No confirmation mail to wait for.
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </header>
+
+    <!-- Searching is a way in, not a row on the shelf, so it happens over the page. -->
+    <div class="veil" x-show="finding" x-cloak @click.self="finding = false">
+      <div class="pal" role="dialog" aria-label="Find a show">
+        <form @submit.prevent="run()">
+          <input
+            type="search"
+            x-ref="query"
+            x-model="query"
+            placeholder="Search for a show, then press return…"
+            aria-label="Search for a show to track"
+            autocomplete="off"
+          />
+        </form>
+        <!-- Until it has something to show, the palette is an input and nothing else. -->
+        <div class="hits" x-show="results.length || note">
+          <p class="none" x-show="note" x-text="note"></p>
+          <template x-for="row in results" :key="row.id">
+            <button class="hit" @click="look(row.id)">
+              <span class="thumb" :style="`--hue:${hue(row)}`">
+                <span class="stand" x-text="initials(row)"></span>
+                <template x-if="tile(row)">
+                  <img
+                    :src="tile(row)"
+                    alt=""
+                    @load="$el.classList.add('here')"
+                  x-init="$el.complete && $el.naturalWidth && $el.classList.add('here')"
+                  />
+                </template>
+              </span>
+              <span>
+                <b x-text="row.name"></b>
+                <span x-text="`${row.year} · ${row.seasonTotal ?? '?'} seasons`"></span>
+              </span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <main class="wrap">
+      <!-- Suggestions are filtered the way they always were, by genre and by what everyone
+       else made of them. -->
+      <div class="sift" x-show="tab === 'discover'" x-cloak>
+        <select x-model="$store.recommended.genre" aria-label="Genre">
+          <option value="">every genre</option>
+          <template x-for="genre in $store.recommended.genres" :key="genre">
+            <option :value="genre" x-text="genre"></option>
+          </template>
+        </select>
+        <select x-model.number="$store.recommended.minRating" aria-label="Least rating">
+          <option value="0">any rating</option>
+          <template x-for="score in [6, 7, 8, 9]" :key="score">
+            <option :value="score" x-text="`★ ${score} and up`"></option>
+          </template>
+        </select>
+        <span
+          class="dim"
+          x-show="$store.recommended.items.length"
+          x-text="`${$store.recommended.visible.length} of ${$store.recommended.items.length}`"
+        ></span>
+        <button
+          class="btn"
+          @click="$store.recommended.reload($store.library.shows)"
+          title="Look again"
+        >
+          Look again
+        </button>
+      </div>
+      <p
+        class="none"
+        x-show="tab === 'discover' && $store.recommended.note"
+        x-text="$store.recommended.note"
+        x-cloak
+      ></p>
+
+      <div class="grid" x-cloak>
+        <template x-for="show in showing" :key="show.id">
+          <!-- A suggestion is not tracked, so it opens the preview the search results open.
+           The card is two controls, not one: the poster opens the show, and the tick in the
+           corner marks the next episode. -->
+          <div class="card">
+            <button
+              class="open"
+              @click="tab === 'discover' ? look(show.id) : look_at(show.id)"
+            >
+            <span class="art" :style="`--hue:${hue(show)}`">
+              <span class="stand" x-text="initials(show)"></span>
+              <template x-if="tile(show)">
+                <img
+                  :src="tile(show)"
+                  :alt="show.name"
+                  loading="lazy"
+                  @load="$el.classList.add('here')"
+                  x-init="$el.complete && $el.naturalWidth && $el.classList.add('here')"
+                />
+              </template>
+              <span class="badge" x-show="behind(show)" x-text="behind(show)"></span>
+              <span
+                class="chip"
+                x-show="tab === 'comingUp' && show.upcoming?.length"
+                x-text="show.upcoming?.length ? airs(show.upcoming[0].airDate) : ''"
+              ></span>
+              <span class="meter"><i :style="`width:${through(show)}%`"></i></span>
+            </span>
+              <h3 x-text="show.name"></h3>
+              <p x-text="caption(show)"></p>
+            </button>
+
+            <!-- Pointer devices only. A poster on a phone is 117px wide and cannot hold two
+             targets a thumb can hit apart; there the sheet is how an episode is marked. -->
+            <button
+              class="tick"
+              x-show="tab !== 'discover' && behind(show)"
+              @click="marked === show.id ? undo(show) : mark(show)"
+              :class="{ back: marked === show.id }"
+              :title="marked === show.id ? 'Undo' : `Mark ${nextCode(show)} watched`"
+              :aria-label="marked === show.id ? 'Undo' : `Mark ${nextCode(show)} watched`"
+              x-text="marked === show.id ? '↶' : '✓'"
+            ></button>
+          </div>
+        </template>
+      </div>
+
+      <p class="none" x-show="!showing.length" x-cloak>Nothing on this shelf.</p>
+    </main>
+
+    <div class="wrap">
+      <!-- The theme is chosen once and then left alone, so it sits here rather than competing
+       with search and the account for the masthead. -->
+      <footer x-cloak>
+        <div class="lamps" role="group" aria-label="Theme">
+          <template x-for="choice in themes" :key="choice.name">
+            <button
+              class="lamp"
+              @click="pick(choice.value)"
+              :aria-pressed="theme === choice.value"
+              :aria-label="choice.name"
+              :title="choice.name"
+              x-text="choice.mark"
+            ></button>
+          </template>
+        </div>
+        <div class="grow"></div>
+
+        <!-- A browser is not the only copy. The file carries the watch data and nothing that
+         TMDB can say again. -->
+        <span class="moves" x-data="transfer">
+          <span class="dim" x-text="note"></span>
+          <button class="btn" @click="save()" title="Write what you watch to a file">
+            Export
+          </button>
+          <button
+            class="btn"
+            @click="$refs.file.click()"
+            title="Read a file back, in place of what this browser tracks"
+          >
+            Import
+          </button>
+          <input
+            type="file"
+            accept="application/json,.json"
+            x-ref="file"
+            hidden
+            @change="open($event)"
+          />
+        </span>
+
+        <button class="btn" @click="$store.library.refresh()">Refresh air dates</button>
+      </footer>
+    </div>
+
+    <!-- The step a poster earns: what the picture cannot say. -->
+    <template x-if="show">
+      <div>
+        <div class="scrim" @click="shut()"></div>
+        <aside class="sheet" aria-label="Show details">
+          <!-- The poster fills the head of the sheet, so the thing you clicked is still the
+           thing you are looking at. -->
+          <div
+            class="hero"
+            :style="`--hue:${hue(show)};${hero(show) ? `background-image:url('${hero(show)}')` : ''}`"
+          >
+            <button class="shut" @click="shut()" aria-label="Close">✕</button>
+            <div class="lift">
+              <!-- The network's own mark where it has one, and its name where it has not. -->
+              <div class="caps whose">
+                <template x-if="logo(show)">
+                  <img class="badge-net" :src="logo(show)" :alt="show.network" />
+                </template>
+                <span x-show="!logo(show)" x-text="show.network || 'unknown network'"></span>
+                <span x-text="show.tvStatus"></span>
+              </div>
+              <h2 x-text="show.name"></h2>
+              <div class="tag" x-show="show.tagline" x-text="show.tagline"></div>
+              <div
+                class="sub"
+                x-text="`${show.seasons.length} season${show.seasons.length === 1 ? '' : 's'} · ${show.seasons.reduce((n, s) => n + s.episodeCount, 0)} episodes`"
+              ></div>
+            </div>
+          </div>
+
+          <div class="pad">
+            <template x-if="!tracked">
+              <div class="offer">
+                <span>Not tracked</span>
+                <button class="btn keep" @click="track()">Track this show</button>
+              </div>
+            </template>
+
+            <div class="caps" x-show="tracked">Your progress</div>
+            <div class="bar" x-show="tracked"><i :style="`width:${through(show)}%`"></i></div>
+            <div class="line" x-show="tracked">
+              <b x-text="`${through(show)}% watched`"></b>
+              <span
+                x-text="show.currentEpisode ? `up to ${code({ season: show.currentSeason, episode: show.currentEpisode })}` : 'not started'"
+              ></span>
+            </div>
+
+            <!-- The one thing a reader most often came here to do, said as the thing it does
+             rather than as a count to interpret. -->
+            <template x-if="tracked && behind(show)">
+              <button class="next" @click="$store.library.watchNext(show)">
+                <span x-text="`Watched ${nextCode(show)}`"></span>
+                <span class="rest" x-text="`${behind(show)} available`"></span>
+              </button>
+            </template>
+            <div class="line" x-show="show.upcoming.length">
+              <b>Coming up</b>
+              <span
+                x-text="show.upcoming.length ? `${code(show.upcoming[0])} · ${aired(show.upcoming[0].airDate)}` : ''"
+              ></span>
+            </div>
+            <div class="line" x-show="!behind(show) && !show.upcoming.length">
+              <b x-text="$isEnded(show) ? 'The show is over' : 'Caught up'"></b>
+              <span x-text="$isEnded(show) ? 'nothing more is coming' : 'no date announced yet'"></span>
+            </div>
+            <!-- Your rating belongs beside everyone else's, not among the buttons. -->
+            <div class="line">
+              <b>Rated</b>
+              <span class="rated">
+                <span x-text="show.vote ? `★ ${show.vote.toFixed(1)}` : 'unrated'"></span>
+                <select
+                  aria-label="Your rating"
+                  @change="$store.library.rate(show, Number($event.target.value))"
+                >
+                  <option value="">your rating…</option>
+                  <template x-for="n in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="n">
+                    <option :value="n" :selected="show.rating === n" x-text="`★ ${n}`"></option>
+                  </template>
+                </select>
+              </span>
+            </div>
+
+            <!-- Season scores come with the show. Season eight is where a series tells on itself. -->
+            <template x-if="curve.length > 1">
+              <div>
+                <div class="caps" style="margin-top: 1.4rem">Season by season</div>
+                <div class="curve">
+                  <template x-for="season in curve" :key="season.number">
+                    <div :class="{ here: season.here }" :style="`height:${season.height}%`">
+                      <em x-text="season.score.toFixed(1)"></em>
+                    </div>
+                  </template>
+                </div>
+                <div class="curvex">
+                  <template x-for="season in curve" :key="season.number">
+                    <span x-text="season.number"></span>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <template x-for="season in seasonsOf(show)" :key="season.number">
+              <details
+                class="season"
+                :class="{ seen: season.watched >= season.episodeCount }"
+                :open="unfolded.includes(season.number)"
+                @toggle="fold(show, season.number, $event.target.open)"
+              >
+                <summary>
+                  <span x-text="`Season ${season.number}`"></span>
+                  <span
+                    class="caps count"
+                    x-text="season.watched >= season.episodeCount ? `✓ ${season.episodeCount}` : `${season.watched}/${season.episodeCount}`"
+                  ></span>
+                </summary>
+                <div class="eps">
+                  <template x-if="!season.episodes.length">
+                    <p class="none" style="padding: 0.8rem 0; font-size: 0.85rem">
+                      Loading episodes…
+                    </p>
+                  </template>
+                  <template x-for="episode in season.episodes" :key="episode.episode">
+                    <button
+                      class="epi"
+                      :class="{ seen: tracked && season.watched >= episode.episode }"
+                      :disabled="!tracked || episode.airDate > today()"
+                      @click="watchTo(show, season.number, episode.episode)"
+                    >
+                      <span
+                        class="tick"
+                        x-text="season.watched >= episode.episode ? '✓' : ''"
+                      ></span>
+                      <span class="no" x-text="episode.episode"></span>
+                      <span class="nm" x-text="episode.title"></span>
+                      <span class="dt" x-text="aired(episode.airDate)"></span>
+                    </button>
+                  </template>
+                </div>
+              </details>
+            </template>
+
+            <!-- Stopping is undone by resuming. Only a show you already stopped can be
+             thrown away, so the one act that cannot be undone is two decisions deep. -->
+            <div class="doers" x-show="tracked">
+              <button
+                class="btn"
+                @click="show.dropped ? $store.library.restore(show) : $store.library.drop(show)"
+                x-text="show.dropped ? 'Resume watching' : 'Stop watching'"
+              ></button>
+              <button
+                class="btn bad"
+                x-show="show.dropped"
+                @click="$store.library.remove(show.id); open = null"
+              >
+                Remove permanently
+              </button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </template>
   </body>
 </html>

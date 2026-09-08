@@ -137,7 +137,31 @@ main { padding: 1.6rem 0 4rem; }
   display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
   gap: 1.5rem 1.1rem;
 }
-.card { display: flex; flex-direction: column; gap: 0.45rem; text-align: left; padding: 0; }
+.card { position: relative; }
+.card .open {
+  display: flex; flex-direction: column; gap: 0.45rem; text-align: left; padding: 0;
+  width: 100%;
+}
+
+/* The tick sits diagonally opposite the count, at the far corner from where a poster is
+   pressed to open it, and it appears only while the card is under the pointer. */
+.tick {
+  position: absolute; left: 0.35rem; bottom: 2.9rem;
+  width: 1.75rem; height: 1.75rem; border-radius: 6px;
+  display: grid; place-items: center; font-size: 0.9rem;
+  color: #fff; background: color-mix(in srgb, var(--accent) 82%, #000);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  opacity: 0; transition: opacity 0.12s ease;
+}
+.card:hover .tick, .tick:focus-visible { opacity: 1; }
+.tick:hover { background: var(--accent); }
+.tick.back { opacity: 1; background: var(--signal); }
+
+/* Without a pointer there is nothing to hover, so the tick never appears and the sheet is
+   the way in. */
+@media (hover: none) {
+  .tick { display: none; }
+}
 /* Every box that holds artwork paints the stand-in first, and the picture covers it when there
    is one. A poster that is missing, or that fails to load, leaves the stand-in showing. */
 .art, .thumb {
@@ -149,7 +173,7 @@ main { padding: 1.6rem 0 4rem; }
   box-shadow: 0 1px 2px var(--shade), 0 10px 22px var(--shade);
   transition: transform 0.16s ease;
 }
-.card:hover .art { transform: translateY(-3px); }
+.card .open:hover .art { transform: translateY(-3px); }
 /* A picture appears once it has loaded. One that never loads never appears, so a broken
    address shows the stand-in rather than the browser's torn-page mark. */
 .art img, .thumb img {
@@ -181,6 +205,9 @@ main { padding: 1.6rem 0 4rem; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .none { color: var(--mute); padding: 3rem 0; text-align: center; }
+.sift { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.moves { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.dim { color: var(--mute); font-size: 0.82rem; }
 
 /* ---- detail sheet ---- */
 .scrim {
@@ -252,6 +279,15 @@ main { padding: 1.6rem 0 4rem; }
   display: flex; justify-content: space-between; gap: 1rem;
   padding: 0.42rem 0; border-bottom: 1px dotted var(--rule); font-size: 0.9rem;
 }
+.next {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  width: 100%; margin: 1rem 0 0.2rem; padding: 0.7rem 0.85rem;
+  border: 1px solid var(--accent); border-radius: 6px; font-weight: 500;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.next:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.next .rest { font-size: 0.8rem; font-weight: 400; opacity: 0.8; }
+
 .line b { font-weight: 600; }
 .line span:last-child { color: var(--mute); }
 .rated { display: inline-flex; align-items: center; gap: 0.5rem; }
@@ -378,6 +414,7 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   .wrap { width: min(100% - 1.5rem, 68rem); }
   .grid { grid-template-columns: repeat(3, 1fr); gap: 0.45rem 0.35rem; }
   .card h3, .card p { display: none; }
+  .card .open { gap: 0; }
   .art .stand { font-size: 1.1rem; }
   .badge { min-width: 1.2rem; height: 1.2rem; font-size: 0.68rem; }
 
