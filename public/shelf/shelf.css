@@ -11,6 +11,9 @@
   --shade: rgba(17, 23, 26, 0.08);
   --danger: #b8402f;
 }
+/* The dark tokens are written twice on purpose. The media query serves the reader who has
+   chosen nothing, and the attribute serves the reader who has, so a pinned theme beats the
+   system in both directions. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ground: #0f1214;
@@ -23,6 +26,17 @@
     --shade: rgba(0, 0, 0, 0.45);
     --danger: #ef7f6d;
   }
+}
+:root[data-theme="dark"] {
+  --ground: #0f1214;
+  --panel: #171c1f;
+  --rule: #262f34;
+  --ink: #e9eef0;
+  --mute: #8797a0;
+  --accent: #8fb4ea;
+  --signal: #e9a63d;
+  --shade: rgba(0, 0, 0, 0.45);
+  --danger: #ef7f6d;
 }
 
 * { box-sizing: border-box; }
@@ -47,12 +61,18 @@ button { font: inherit; border: 0; background: none; color: inherit; cursor: poi
 .grow { flex: 1; }
 
 /* ---- masthead ---- */
-header { border-bottom: 1px solid var(--rule); background: var(--panel); }
+/* The masthead stays put, so the account and the search are never scrolled past. */
+header {
+  position: sticky; top: 0; z-index: 20;
+  border-bottom: 1px solid var(--rule); background: var(--panel);
+}
 .top { display: flex; align-items: center; gap: 1rem; padding: 1rem 0 0.85rem; }
 .logo {
   display: flex; align-items: center; gap: 0.5rem;
   font-size: 0.95rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none;
 }
+.logo:hover { color: var(--accent); }
 .logo img { width: 1.3rem; height: 1.3rem; }
 .find {
   display: inline-flex; align-items: center; gap: 0.55rem;
@@ -60,9 +80,18 @@ header { border-bottom: 1px solid var(--rule); background: var(--panel); }
   border-radius: 6px; padding: 0.38rem 0.8rem; color: var(--mute); font-size: 0.9rem;
 }
 .find:hover { color: var(--ink); border-color: var(--accent); }
+.find svg { width: 0.95rem; height: 0.95rem; flex: none; }
 .find kbd {
   font: 500 0.72rem/1 inherit; color: var(--mute);
   border: 1px solid var(--rule); border-radius: 4px; padding: 0.15rem 0.3rem;
+}
+
+/* A finger is not a cursor. A device with no hardware keyboard cannot press the shortcut, and
+   wants a target it can hit without aiming. */
+@media (hover: none) and (pointer: coarse) {
+  .find kbd { display: none; }
+  .find, .acct { min-height: 2.75rem; padding-inline: 0.9rem; }
+  .lamp { width: 2.75rem; height: 2.75rem; }
 }
 
 /* ---- finding a show, over the shelf ---- */
@@ -286,6 +315,63 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);
   color: var(--ink); width: 9rem; }
 
+/* Three joined buttons rather than one that cycles, so the theme in force is the one that
+   looks pressed instead of something to infer from a glyph. */
+.lamps {
+  display: inline-flex; flex: none; overflow: hidden;
+  border: 1px solid var(--rule); border-radius: 6px;
+}
+.lamp {
+  width: 1.95rem; height: 1.95rem; display: grid; place-items: center;
+  font-size: 0.9rem; color: var(--mute); background: var(--ground);
+}
+.lamp + .lamp { border-left: 1px solid var(--rule); }
+.lamp:hover { color: var(--ink); }
+.lamp[aria-pressed="true"] {
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+}
+
+/* Signed out it is an offer, signed in it is a state. Same slot, same modal behind it. */
+.acct {
+  border: 1px solid var(--accent); border-radius: 6px; padding: 0.38rem 0.8rem;
+  font-size: 0.9rem; color: var(--accent); flex: none;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.acct:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.acct.on {
+  color: var(--mute); border-color: var(--rule); background: var(--ground);
+}
+.acct.on:hover { color: var(--ink); }
+
+.gate {
+  position: relative; width: min(100% - 2rem, 24rem); padding: 1.6rem 1.6rem 1.3rem;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 6px;
+  box-shadow: 0 20px 60px var(--shade);
+}
+.gate h2 {
+  margin: 0 0 0.4rem; font-size: 1.2rem; font-weight: 600; letter-spacing: -0.01em;
+  text-wrap: balance; padding-right: 2rem;
+}
+.gate .why { margin: 0 0 1.2rem; color: var(--mute); font-size: 0.9rem; }
+.gate .shut { background: var(--ground); color: var(--mute); }
+.gate .shut:hover { color: var(--ink); }
+.gate form { display: flex; flex-direction: column; gap: 0.8rem; }
+.gate label {
+  display: flex; flex-direction: column; gap: 0.3rem;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--mute);
+}
+.gate input {
+  font: inherit; font-size: 0.95rem; padding: 0.5rem 0.6rem; width: 100%;
+  border: 1px solid var(--rule); border-radius: 6px;
+  background: var(--ground); color: var(--ink); text-transform: none; letter-spacing: normal;
+}
+.gate input:focus-visible { border-color: var(--accent); }
+.gate .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.gate .two .btn { padding: 0.5rem; text-align: center; }
+.gate .wrong { margin: 0; color: var(--danger); font-size: 0.86rem; }
+.gate .small { margin: 1.1rem 0 0; color: var(--mute); font-size: 0.8rem; }
+
 /* On a phone the posters carry it alone: three across, and the name and the caption go. The
    art says which show it is and the bar says how far in you are. */
 @media (max-width: 600px) {
@@ -294,4 +380,20 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   .card h3, .card p { display: none; }
   .art .stand { font-size: 1.1rem; }
   .badge { min-width: 1.2rem; height: 1.2rem; font-size: 0.68rem; }
+
+  /* The masthead has to be one line, so search keeps only its glyph and everything tightens.
+     The tabs scroll sideways rather than stacking a second row on top of the shelf. */
+  .top { gap: 0.6rem; padding: 0.55rem 0 0.5rem; }
+  .logo { font-size: 0.85rem; letter-spacing: 0.16em; }
+  .logo img { width: 1.1rem; height: 1.1rem; }
+
+  /* The last tab fades out at the edge rather than being cut off, so a clipped word reads as
+     more to scroll to instead of as a mistake. */
+  .tabs {
+    flex-wrap: nowrap; overflow-x: auto; gap: 1.05rem; padding-bottom: 0.5rem;
+    scrollbar-width: none; -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button { white-space: nowrap; }
 }

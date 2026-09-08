@@ -48,6 +48,10 @@ const shelf = () => ({
   query: "",
   results: [],
   note: "",
+  // "" follows the system. Anything else is a choice this reader made and it is kept.
+  theme: "",
+  // The sign-in form is folded away until someone wants it.
+  joining: false,
 
   get groups() {
     return groupsOf(this.$store.library.shows);
@@ -184,6 +188,7 @@ const shelf = () => ({
   },
 
   shut() {
+    if (this.joining) return (this.joining = false);
     if (this.finding) return (this.finding = false);
     this.open = null;
     this.preview = null;
@@ -198,7 +203,28 @@ const shelf = () => ({
     this.unfolded = [this.$store.library.shows[id]?.currentSeason].filter(Boolean);
   },
 
+  // Three answers, and the third one is to have no answer: no attribute and no stored key,
+  // which is what leaves the page following the system.
+  themes: [
+    { value: "light", mark: "☀", name: "Bright" },
+    { value: "dark", mark: "☾", name: "Dark" },
+    { value: "", mark: "◐", name: "Auto" },
+  ],
+
+  pick(choice) {
+    this.theme = choice;
+    if (choice) document.documentElement.dataset.theme = choice;
+    else delete document.documentElement.dataset.theme;
+    try {
+      if (choice) localStorage.setItem("onair.theme", choice);
+      else localStorage.removeItem("onair.theme");
+    } catch {
+      /* the choice holds for this page either way */
+    }
+  },
+
   init() {
+    this.theme = document.documentElement.dataset.theme || "";
     addEventListener("keydown", (event) => {
       if (event.key === "Escape") this.shut();
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {

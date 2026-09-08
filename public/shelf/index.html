@@ -3,8 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ONAIR — the shelf</title>
+
+    <title>ONAIR — track what you watch, one shelf at a time</title>
+    <meta
+      name="description"
+      content="A television tracker: see which episode you are on, what has aired that you have not seen, and when the next one is due. Works without an account; sign in to sync across devices."
+    />
+    <link rel="canonical" href="https://onair.smaspe.workers.dev/shelf/" />
+    <meta name="theme-color" content="#f4f6f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1214" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ONAIR" />
+    <meta property="og:title" content="ONAIR — track what you watch" />
+    <meta
+      property="og:description"
+      content="Which episode you are on, what has aired that you have not seen, and when the next one is due."
+    />
+    <meta property="og:url" content="https://onair.smaspe.workers.dev/shelf/" />
+    <meta property="og:image" content="https://onair.smaspe.workers.dev/logo.svg" />
+    <meta name="twitter:card" content="summary" />
+
     <link rel="icon" href="../mark.svg" />
+
+    <script>
+      // Before the first paint, so a pinned theme never flashes the other one.
+      try {
+        const held = localStorage.getItem("onair.theme");
+        if (held) document.documentElement.dataset.theme = held;
+      } catch {
+        /* a browser that refuses storage follows the system, which is the default */
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,11 +53,28 @@
   </head>
 
   <body x-data="shelf">
-    <header>
+    <!-- The account lives in the masthead, which stays put. A shelf of forty shows is a long
+     way to scroll for a thing you are meant to notice once. -->
+    <header x-data="account" x-effect="user && (joining = false)">
       <div class="wrap top">
         <a class="logo" href="../"><img src="../mark.svg" alt="" />ONAIR</a>
         <div class="grow"></div>
-        <button class="find" @click="find()">Find a show <kbd>⌘K</kbd></button>
+        <button class="find" @click="find()" aria-label="Find a show">
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="6.6" cy="6.6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span class="say">Find a show</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <button
+          class="acct"
+          :class="{ on: user }"
+          x-cloak
+          @click="joining = true"
+          :title="user ? `Signed in as ${user.email}` : 'Sync your shows across devices'"
+          x-text="user ? 'Synced' : 'Sync'"
+        ></button>
       </div>
 
       <!-- The four states a show can be in, plus what you gave up on. The old word "caught up"
@@ -44,6 +91,73 @@
           </button>
         </template>
       </nav>
+
+      <!-- Asking for an account is a whole decision, so it gets the room to explain itself
+       and does not crowd the shelf while nobody is asking. -->
+      <template x-if="joining">
+        <div class="veil" @click.self="joining = false">
+          <div class="gate" role="dialog" aria-modal="true" aria-labelledby="why">
+            <button class="shut" @click="joining = false" aria-label="Close">✕</button>
+
+            <template x-if="user">
+              <div>
+                <h2 id="why">Your shows are syncing</h2>
+                <p class="why">
+                  Signed in as <b x-text="user.email"></b>. Everything you mark is kept on
+                  every device you sign in on.
+                </p>
+                <button class="btn" @click="signOut()">Sign out</button>
+              </div>
+            </template>
+
+            <template x-if="!user">
+              <div>
+                <h2 id="why">Sync your shows across devices</h2>
+                <p class="why">
+                  What you watch is kept in this browser. An account keeps it together on
+                  your phone, your laptop, and anything else you sign in on.
+                </p>
+
+                <form @submit.prevent="signIn()">
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      x-model="email"
+                      autocomplete="email"
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </label>
+                  <label>
+                    Password
+                    <input
+                      type="password"
+                      x-model="password"
+                      autocomplete="current-password"
+                      placeholder="at least eight characters"
+                      required
+                    />
+                  </label>
+
+                  <p class="wrong" x-show="note" x-text="note"></p>
+
+                  <div class="two">
+                    <button class="btn keep">Sign in</button>
+                    <button class="btn" type="button" @click="signUp()">
+                      Create an account
+                    </button>
+                  </div>
+                </form>
+
+                <p class="small">
+                  Email and a password, nothing else. No confirmation mail to wait for.
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
     </header>
 
     <!-- Searching is a way in, not a row on the shelf, so it happens over the page. -->
@@ -116,10 +230,20 @@
     </main>
 
     <div class="wrap">
+      <!-- The theme is chosen once and then left alone, so it sits here rather than competing
+       with search and the account for the masthead. -->
       <footer x-cloak>
-        <div x-data="account">
-          <span x-show="!user">Stored in this browser.</span>
-          <span x-show="user">On every device you sign in on.</span>
+        <div class="lamps" role="group" aria-label="Theme">
+          <template x-for="choice in themes" :key="choice.name">
+            <button
+              class="lamp"
+              @click="pick(choice.value)"
+              :aria-pressed="theme === choice.value"
+              :aria-label="choice.name"
+              :title="choice.name"
+              x-text="choice.mark"
+            ></button>
+          </template>
         </div>
         <div class="grow"></div>
         <button class="btn" @click="$store.library.refresh()">Refresh air dates</button>
