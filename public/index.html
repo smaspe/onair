@@ -21,10 +21,22 @@
       content="Which episode you are on, what has aired that you have not seen, and when the next one is due."
     />
     <meta property="og:url" content="https://onair.smaspe.workers.dev/" />
-    <meta property="og:image" content="https://onair.smaspe.workers.dev/logo.svg" />
-    <meta name="twitter:card" content="summary" />
+    <!-- A social card is a raster image everywhere it is shown. og.svg is the source and is
+     converted; this names what the conversion writes. -->
+    <meta property="og:image" content="https://onair.smaspe.workers.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" href="mark.svg" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <script>
+      // Registering is left until the page has loaded, because the page must not wait for it.
+      if ("serviceWorker" in navigator)
+        addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+    </script>
 
     <script>
       // Before the first paint, so a pinned theme never flashes the other one.
@@ -69,13 +81,15 @@
           <span class="say">Find a show</span>
           <kbd>⌘K</kbd>
         </button>
+        <!-- Signed in, the button is where the shelf says whether the other devices have what
+         this one knows. A change that could not be sent is named here, not swallowed. -->
         <button
           class="acct"
-          :class="{ on: $store.account.user }"
+          :class="{ on: $store.account.user, late: waitingHere }"
           x-cloak
           @click="joining = true"
-          :title="$store.account.user ? `Signed in as ${$store.account.user.email}` : 'Sync your shows across devices'"
-          x-text="$store.account.user ? 'Synced' : 'Sync'"
+          :title="syncSays"
+          x-text="$store.account.user ? (waitingHere ? `${waitingHere} waiting` : 'Synced') : 'Sync'"
         ></button>
         <div class="lamps" role="group" aria-label="Theme">
           <template x-for="choice in themes" :key="choice.name">
@@ -127,8 +141,12 @@
 
           <template x-if="$store.account.user">
             <div>
-              <h2 id="why">Synced</h2>
+              <h2 id="why" x-text="waitingHere ? 'Not sent yet' : 'Synced'"></h2>
               <p class="why"><b x-text="$store.account.user.email"></b></p>
+              <p class="wrong" x-show="waitingHere">
+                <span x-text="`${waitingHere} shows`"></span> have changes your other devices do
+                not have. They go up as soon as this browser can reach the table.
+              </p>
               <button class="btn" @click="$store.account.signOut()">Sign out</button>
             </div>
           </template>
@@ -176,6 +194,14 @@
         </div>
       </div>
     </template>
+
+    <!-- The page is served from a held copy, so a newer one is found after this one is drawn.
+     Nothing is taken away mid-read: the reader decides when to start again. -->
+    <div class="renew" x-show="renewed" x-cloak>
+      <span>A newer version of ONAIR is ready.</span>
+      <button class="btn keep" @click="location.reload()">Reload</button>
+      <button class="btn" @click="renewed = false" aria-label="Dismiss">Later</button>
+    </div>
 
     <!-- Searching is a way in, not a row on the shelf, so it happens over the page. -->
     <div class="veil" x-show="finding" x-cloak @click.self="finding = false">
@@ -278,15 +304,13 @@
                 />
               </template>
               <span class="badge" x-show="behind(show)" x-text="behind(show)"></span>
-              <span
-                class="chip"
-                x-show="tab === 'comingUp' && show.upcoming?.length"
-                x-text="show.upcoming?.length ? airs(show.upcoming[0].airDate) : ''"
-              ></span>
+              <template x-if="chip(show)">
+                <span class="chip" :class="chip(show).kind" x-text="chip(show).say"></span>
+              </template>
               <span class="meter"><i :style="`width:${through(show)}%`"></i></span>
             </span>
               <h3 x-text="title(show)"></h3>
-              <p x-text="caption(show)"></p>
+              <p :class="{ reason: tab === 'discover' }" x-text="caption(show)"></p>
             </button>
           </div>
         </template>
@@ -363,6 +387,15 @@
               <div class="offer">
                 <span>Not tracked</span>
                 <button class="btn keep" @click="track()">Track this show</button>
+              </div>
+            </template>
+
+            <!-- Why this one is on the Discover shelf: every show of yours that suggested it,
+             the one the card named first. -->
+            <template x-if="backing(show).length">
+              <div class="why">
+                <div class="caps">Because you watch</div>
+                <p x-text="backing(show).join(' · ')"></p>
               </div>
             </template>
 

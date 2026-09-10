@@ -1,4 +1,7 @@
 const WATCHED_KEY = "onair.watched";
+// Which shows have a change the table has not taken. The change itself is not stored here. The
+// shows are, so a show is read from them and sent as it stands when the connection returns.
+const WAITING_KEY = "onair.waiting";
 
 // The whole of what is worth keeping: which episode you are on, what you make of the show,
 // and whether you dropped it. Everything else about a show comes from TMDB on load.
@@ -43,14 +46,21 @@ export const saveShows = (shows) => {
   localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
 };
 
+// A show is waiting to be sent, or waiting to be buried. Nothing else can be waiting.
+export const loadWaiting = () => read(WAITING_KEY);
+
+export const saveWaiting = (waiting) =>
+  localStorage.setItem(WAITING_KEY, JSON.stringify(waiting));
+
 // What a backup holds: the watch data, and nothing that TMDB can say again.
 export const exportWatched = () => JSON.stringify(read(WATCHED_KEY), null, 2);
 
-// A file is only trusted for its shape. Anything else in it is left out.
-export const importWatched = (text) => {
+// What a file says, read for its shape alone. Anything else in it is left out. The shelf it
+// lands on is not this function's business: it returns the shows and the library adds them.
+export const readBackup = (text) => {
   const parsed = JSON.parse(text);
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-    throw new Error("not a backup");
+    throw new Error("That file is not a backup.");
 
   const watched = {};
   for (const [id, show] of Object.entries(parsed)) {
@@ -62,8 +72,6 @@ export const importWatched = (text) => {
       dropped: Boolean(show.dropped),
     };
   }
-  if (!Object.keys(watched).length) throw new Error("no shows in it");
-
-  localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
-  return Object.keys(watched).length;
+  if (!Object.keys(watched).length) throw new Error("No shows in that file.");
+  return watched;
 };

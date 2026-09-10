@@ -7,43 +7,49 @@ next episode airs.
 
 ## What it does
 
-Four views, chosen by the URL fragment:
+One shelf of posters, and a tab for each state a tracked show can be in:
 
-- **Shows** - what you track, in progress sections: watching, saved but not
-  started, caught up but not rated, caught up, and finished. Finished starts folded.
-- **Upcoming** - every episode scheduled to air across your whole library, grouped by month.
-- **Recommended** - Recommendations based on the shows you watched and whether you liked them.
-- **Dropped** - what you gave up on, kept separate, with restore and permanent delete.
+- **Available** — an episode has aired that you have not seen.
+- **Coming up** — nothing to watch, and a date for the next one.
+- **Caught up** — nothing to watch, the show is still running, and no date yet.
+- **Finished** — the show is over.
+- **Dropped** — you stopped watching.
+- **Discover** — what the shows you watch suggest, and which of your shows suggested it.
 
-On a card, `✓` marks the next episode, `✓✓` the rest of the season, `✓✓✓` everything that has
-aired, and `✗` steps back one.
+A poster shows the count of what has aired and you have not seen, how far through the run you
+are, and how long ago the last episode arrived. Opening one gives a sheet: the artwork, what
+everyone made of each season, and the seasons themselves. Pressing an episode you have not seen
+marks everything up to it; pressing one you have seen unmarks from there, so the first episode
+of a show can be unwatched.
+
+It works with no account, and it works with no network.
 
 ## How it works
 
 A page with no build step — **no bundler, no framework compilation**. The files in `public/`
-are the files the browser runs, and everything under it is served at its own path. Behind it,
-one Cloudflare Worker in `worker/` serves those files and answers `/api` with show data, so
-the app is run with wrangler rather than a file server.
+are the files the browser runs. One Cloudflare Worker in `worker/` serves them and answers
+`/api` with show data, so the app runs under wrangler rather than a file server.
 
-- **Alpine** provides reactivity.
-- **Components are HTML files.** `public/parts/show-card.part.html` is mounted by writing
-  `<show-card>`. `public/js/parts.js` defines each custom element and injects the file's markup.
-  The address drops the `.html` — Cloudflare treats `/parts/show-card.part` as the canonical
-  one and would redirect the longer form to it.
-- **No router.** Views switch with CSS. `:target` shows the view whose id matches the fragment. 
-- **Show data comes from TMDB.**
-- **Your progress is stored in `localStorage`** under one key, with export and import buttons.
+- **Alpine provides the reactivity**, pinned to an exact version from esm.sh.
+- **One page and no router.** `public/index.html` contains every view and `public/shelf.js` is
+  the component behind it. A tab is a value, not an address.
+- **Show data comes from TMDB and is never stored.** Only the watch progress is kept, so every
+  load asks TMDB what a show is. This is why the service worker below matters.
+- **The watch progress is stored in `localStorage`**, with export and import beneath the shelf.
+- **Signing in adds a second copy** in Supabase, one row per show. A realtime subscription
+  keeps open tabs level, and a change that cannot be sent is remembered until it can be.
+- **A service worker stores the page, the TMDB answers and the artwork**, so a browser with no
+  network still has a shelf rather than a list of ids.
 
-The one trap worth knowing: **a record must be reached through the store, never handed down
-from an `x-for`.** Alpine gives a child scope a copy of the loop item, so writes to it render
-and are then lost. `public/js/card.js` passes an id and reads the record back. Its comment
-explains this, and `public/js/parts.js` points at it.
-
-## Documents
-
-**[architecture/](architecture/README.md)** is where to start. It shows what the system looks
-like, what exists today, and the order to build the rest in, and it indexes the roadmap, the
-hosting, the TMDB proxy, the user data and the recommendation formula.
+| | |
+| --- | --- |
+| `public/index.html` | Every view |
+| `public/shelf.js` | The component: tabs, the sheet, search, the theme |
+| `public/state.js` | What state a show is in, and how titles are filed |
+| `public/sw.js` | The three caches, and noticing a newer version |
+| `public/js/` | The library, the account, TMDB, Supabase, export and import |
+| `public/js/model/` | Progress arithmetic, and the recommendation formula |
+| `worker/` | The static files and the `/api` proxy |
 
 ## Running it
 
@@ -61,6 +67,64 @@ TMDB_KEY=your-tmdb-v3-key
 ```
 
 Deployed at <https://onair.smaspe.workers.dev>. See `cloudflare.md`.
+
+### The service worker while you work
+
+The page is answered from the copy the worker stored, so an edit appears on the next load and
+the running page offers to start again. To work without it, unregister the worker in the
+browser's application panel, or empty the caches from the console:
+
+```js
+caches.keys().then((names) => names.forEach((name) => caches.delete(name)));
+```
+
+### The images that are not SVG
+
+Social cards and home screen icons have to be raster images, so four PNGs are generated by
+hand from `public/og.svg` and `public/mark.svg` and committed beside them. There is no build
+step to do it: run the commands in that order when either source changes.
+
+**This needs librsvg.** ImageMagick draws SVG with its own renderer unless librsvg is present,
+and that renderer ignores `fill="none"` and picks its own fonts: the arcs of the mark come out
+as filled grey blobs, the rule around ON AIR disappears, and the words are set in a serif.
+`magick -version` lists `rsvg` among the delegates when it is there.
+
+```bash
+brew install librsvg
+```
+
+`rsvg-convert` then draws each file at an exact size, and keeps the background transparent:
+
+```bash
+rsvg-convert -w 1200 -h 630 public/og.svg -o public/og.png
+```
+
+```bash
+rsvg-convert -w 192 -h 192 public/mark.svg -o public/icon-192.png
+```
+
+```bash
+rsvg-convert -w 512 -h 512 public/mark.svg -o public/icon-512.png
+```
+
+```bash
+rsvg-convert -w 180 -h 180 -b '#0f1214' public/mark.svg -o public/apple-touch-icon.png
+```
+
+Without librsvg, macOS draws the same file correctly through QuickLook, at the cost of a square
+canvas and a white background:
+
+```bash
+qlmanage -t -s 1024 -o . public/mark.svg
+```
+
+That writes `mark.svg.png`, which `magick` then resizes. It suits the mark, which is square. It
+does not suit the social card, which is not.
+
+## Documents
+
+**[architecture/](architecture/README.md)** is where to start. It shows what the system looks
+like and indexes the hosting, the TMDB proxy, the user data and the recommendation formula.
 
 ## Credits
 

@@ -193,6 +193,9 @@ main { padding: 1.6rem 0 4rem; }
   border-radius: 3px; background: color-mix(in srgb, var(--panel) 88%, transparent);
   color: var(--ink); font-size: 0.7rem; font-weight: 500;
 }
+/* The count says how much is waiting. This says when the last episode arrived, which is a
+   different question and the one a tracker is for. */
+.chip.new { background: var(--accent); color: #fff; font-weight: 600; }
 .meter { position: absolute; inset: auto 0 0 0; height: 4px; background: rgba(0, 0, 0, 0.35); }
 .meter i { display: block; height: 100%; background: #fff; }
 /* Room for two lines of title whether or not the title needs them, so the captions along a
@@ -203,6 +206,12 @@ main { padding: 1.6rem 0 4rem; }
 .card p {
   margin: 0; color: var(--mute); font-size: 0.8rem;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* A suggestion is on the shelf because of a show you watch, and the name of that show is the
+   whole of what the line says. One line of a poster's width cuts it off, so it gets two. */
+.card p.reason {
+  white-space: normal; text-overflow: clip;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
 }
 .none { color: var(--mute); padding: 3rem 0; text-align: center; }
 .sift { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
@@ -280,6 +289,10 @@ main { padding: 1.6rem 0 4rem; }
 }
 .btn.keep:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .pad { padding: 1.2rem 1.5rem 2rem; }
+/* Every show of yours that put this suggestion here. The names run on rather than stacking,
+   because the list is the answer and its length is part of the answer. */
+.sheet .why { margin-bottom: 1.1rem; }
+.sheet .why p { margin: 0.25rem 0 0; font-size: 0.9rem; line-height: 1.45; }
 .bar { height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; margin: 0.5rem 0 0.35rem; }
 .bar i { display: block; height: 100%; background: var(--accent); }
 .line {
@@ -340,6 +353,16 @@ select {
   border-radius: 6px; background: var(--panel); color: var(--ink);
 }
 
+/* Along the foot of the window, clear of the masthead and of the sheet's own controls. */
+.renew {
+  position: fixed; z-index: 50; left: 50%; bottom: 1.1rem; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: center;
+  width: max-content; max-width: calc(100% - 2rem);
+  padding: 0.6rem 0.8rem; font-size: 0.87rem;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 12px 34px var(--shade);
+}
+
 footer {
   border-top: 1px solid var(--rule); padding: 1.1rem 0 2.4rem; color: var(--mute);
   font-size: 0.84rem; display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
@@ -374,6 +397,12 @@ footer input { font: inherit; font-size: 0.85rem; padding: 0.3rem 0.45rem;
   color: var(--mute); border-color: var(--rule); background: var(--ground);
 }
 .acct.on:hover { color: var(--ink); }
+/* Work this browser holds that the table has not taken. The same colour as the count on a
+   poster, because both say the same thing: there is something here you have not dealt with. */
+.acct.on.late {
+  color: var(--signal); border-color: var(--signal);
+  background: color-mix(in srgb, var(--signal) 12%, transparent);
+}
 
 .gate {
   position: relative; width: min(100% - 2rem, 24rem); padding: 1.6rem 1.6rem 1.3rem;

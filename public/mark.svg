@@ -3,8 +3,7 @@
        this; at the size of a tab or a header the words are unreadable, so only the
        broadcast survives.
 
-       A browser cannot give a favicon a colour, so the accent is written here. It must
-       match the accent in styles.css. -->
+       A browser cannot give a favicon a colour, so the mark carries its own. -->
   <circle cx="0" cy="0" r="11" fill="#46b9aa"/>
   <g fill="none" stroke="#46b9aa" stroke-width="8" stroke-linecap="round">
     <path d="M16.7 -19.9 A26 26 0 0 1 16.7 19.9"/>

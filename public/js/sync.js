@@ -54,31 +54,32 @@ const inTurn = (id, write) => {
   return next;
 };
 
-// A write that does not arrive leaves this browser ahead of the table, and the next read
-// undoes the change. Say so instead of losing it quietly.
-// A query is thenable but is not a Promise, so it is adopted before it can be caught. It
-// answers with an error of its own, and rejects only when the request never arrives.
-const checked = async (request) => {
+// Whether the change reached the table. A query is thenable but is not a Promise, so it is
+// adopted before it can be caught: it answers with an error of its own, and rejects only when
+// the request never left.
+const reached = async (request) => {
   const { error } = await Promise.resolve(request).catch((failure) => ({
     error: failure,
   }));
   if (error) console.error("onair: a change did not reach the table —", error.message);
+  return !error;
 };
 
-// A signed-out reader keeps everything in the browser, so these two do nothing for them.
+// A signed-out reader keeps everything in the browser, so there is nothing for these two to
+// send and nothing for the caller to send again later.
 export const push = async (show) => {
-  if (!userId || !show) return;
+  if (!userId || !show) return true;
   const supabase = await client();
-  await inTurn(show.id, () => checked(supabase.from(TABLE).upsert(rowOf(show))));
+  return inTurn(show.id, () => reached(supabase.from(TABLE).upsert(rowOf(show))));
 };
 
 // A row that is removed outright lets a second device write the show back. The tombstone
 // stays, and every read passes over it.
 export const bury = async (id) => {
-  if (!userId) return;
+  if (!userId) return true;
   const supabase = await client();
-  await inTurn(id, () =>
-    checked(
+  return inTurn(id, () =>
+    reached(
       supabase
         .from(TABLE)
         .update({ deleted_at: new Date().toISOString() })

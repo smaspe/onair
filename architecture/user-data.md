@@ -11,6 +11,10 @@ user who wants no account.
 **Signed in.** Supabase holds the watch data and localStorage becomes a cache of it. The app
 reads the cache first, so it paints immediately, then reconciles with the server.
 
+**Importing a file adds to the shelf.** A show the file names takes what the file says about
+it; a show the file does not name is left alone; nothing is taken off the shelf. The imported
+progress goes up before anything is read back, for the same reason the waiting list does.
+
 **The upgrade.** A user who signs in for the first time keeps what they already track: the
 client uploads every show the server does not hold. Where both hold the same show, the row
 stands. localStorage keeps no timestamp, so the two cannot be ordered by age, and a cache does
@@ -66,15 +70,9 @@ it.
 **A delete leaves a tombstone.** `deleted_at` marks the row and reads filter it out. A hard
 delete lets a second device write the row again.
 
-**A write that never reaches the table is lost.** The client writes to localStorage first and
-to the table second. Nothing retries the second half, so a change made while the network is
-down survives only until the next read replaces it. Keeping `updated_at` beside the local
-progress would let a genuinely newer local row win, at the cost of trusting the device clock
-for that one comparison.
-
-If a lost episode ever happens in practice, merge the progress as a maximum instead: compare
-the absolute episode index and keep the higher one. That refuses a rewind, so it also needs a
-version counter for the un-watch button. Do this when there is evidence, not before.
+**A write that does not reach the table is sent again.** The client writes to localStorage
+first and to the table second, and records the show when the second half fails.
+[offline.md](offline.md) has the rules and the order they run in.
 
 ## Keys
 

@@ -33,6 +33,24 @@ that average:
 - 5.9 from 26 votes becomes **6.8**, most of the way back to average.
 - 5.9 from 2000 votes stays **5.9**, because the crowd is large enough to trust.
 
+## Saying why
+
+A suggestion records which of your shows voted for it, and the shelf shows one of those names
+under the poster.
+
+**Which one is free to choose**, because they all suggested it. Naming the loudest is the
+obvious rule and it is a bad one: a weight belongs to the source show and not to the
+suggestion, so the show you rate highest wins that comparison every time it appears, and it
+appears almost everywhere. A library of 55 shows produced 725 suggestions, and one show's name
+sat on 50 of the 50 on screen.
+
+So the shelf names the show it has named least so far. Every name is still true, and 43 of
+those 50 cards then named a different show.
+
+The sheet has room, and lists all of them.
+
+## Sizing
+
 The two terms are then sized so one cannot drown the other. One point of your rating is worth
 50. The community term is a difference from 7.3 in tenths, so across the ratings that occur in
 practice it runs from about -23 for a poorly received show to +17 for an acclaimed one. Two

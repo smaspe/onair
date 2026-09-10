@@ -1,0 +1,28 @@
+{
+  "name": "ONAIR",
+  "short_name": "ONAIR",
+  "description": "Which episode you are on, what has aired that you have not seen, and when the next one is due.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f7",
+  "theme_color": "#f4f6f7",
+  "icons": [
+    {
+      "src": "/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

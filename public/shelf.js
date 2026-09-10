@@ -44,6 +44,16 @@ const aired = (date) =>
     year: "numeric",
   });
 
+// How long ago, for a date inside the last week. `airs` says the same thing forwards.
+const since = (date) =>
+  Math.round((new Date().setHours(0, 0, 0, 0) - dayOf(date)) / 86400000);
+
+const ago = (days) => {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+};
+
 // A shelf reads a show the way a poster does: a picture, a count, and one line that says what
 // happens next. Everything else waits for the sheet.
 const shelf = () => ({
@@ -94,6 +104,18 @@ const shelf = () => ({
     return !!this.show && !this.preview;
   },
 
+  // Changes this browser made that the table has not taken. Only a signed-in reader has a
+  // table to be behind: everything a signed-out one does is already where it belongs.
+  get waitingHere() {
+    return this.$store.account.user ? this.$store.library.unsent : 0;
+  },
+  get syncSays() {
+    if (!this.$store.account.user) return "Sync your shows across devices";
+    if (this.waitingHere)
+      return `${this.waitingHere} changes have not reached your other devices`;
+    return `Signed in as ${this.$store.account.user.email}`;
+  },
+
   tile: (show) => imageAt(show.posterPath, 342),
   title: titleOf,
   // Shown beside the original title only when the two differ.
@@ -127,12 +149,39 @@ const shelf = () => ({
     return all ? Math.round((episodesWatched(show) / all) * 100) : 0;
   },
 
+  // The one thing a poster says beyond the picture: what everyone makes of a suggestion, when
+  // the next episode comes, or how long ago the last one arrived. How far behind you are does
+  // not answer the last of those — a show you are ninety episodes behind on can have had
+  // nothing new for years. A week is the window, and past it the poster says nothing.
+  chip(show) {
+    if (this.tab === "discover")
+      return show.vote ? { say: `★ ${show.vote.toFixed(1)}`, kind: "" } : null;
+    if (this.tab === "comingUp" && show.upcoming?.length)
+      return { say: airs(show.upcoming[0].airDate), kind: "" };
+
+    if (!show.last?.airDate) return null;
+    const days = since(show.last.airDate);
+    return days >= 0 && days <= 7 ? { say: ago(days), kind: "new" } : null;
+  },
+
+  // Which of your shows put a suggestion on the shelf. A caption under a poster has room for
+  // one name, so it names one and counts the rest.
+  because(show) {
+    const from = show.from ?? [];
+    if (!from.length) return show.genres?.[0] ?? "";
+    const rest = from.length - 1;
+    return `because you watch ${from[0]}${rest ? ` +${rest}` : ""}`;
+  },
+
+  // The sheet has room for all of them. A record fetched from TMDB includes no reason, so the
+  // reason comes from the suggestion the sheet was opened from.
+  backing(show) {
+    return this.$store.recommended.items.find((item) => item.id === show.id)?.from ?? [];
+  },
+
   // One line under a poster, saying what would happen next rather than repeating the badge.
   caption(show) {
-    if (this.tab === "discover")
-      return [show.vote ? `★ ${show.vote.toFixed(1)}` : "", show.genres?.[0]]
-        .filter(Boolean)
-        .join(" · ");
+    if (this.tab === "discover") return this.because(show);
     const state = stateOf(show);
     if (state === "available") {
       const at = nextWatched(show);
@@ -310,8 +359,15 @@ const shelf = () => ({
     }
   },
 
+  // The page is drawn from the copy the worker held, so a page that has been deployed since is
+  // already on screen by the time the worker finds out. Starting again is the reader's to make.
+  renewed: false,
+
   init() {
     this.theme = document.documentElement.dataset.theme || "";
+    navigator.serviceWorker?.addEventListener("message", (event) => {
+      if (event.data?.onair === "renewed") this.renewed = true;
+    });
     addEventListener("keydown", (event) => {
       if (event.key === "Escape") this.shut();
       if ((event.metaKey || event.ctrlKey) && event.key === "k") {

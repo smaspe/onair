@@ -10,8 +10,9 @@ served from the file and never runs the Worker. A request that matches a route i
 
 ```jsonc
 "assets": {
-  "directory": ".",
+  "directory": "./public",
   "binding": "ASSETS",
+  "not_found_handling": "404-page",
   "run_worker_first": ["/api/*"]
 }
 ```
@@ -26,6 +27,7 @@ That puts the page and its API on one origin. Three things follow:
 
 | Tier | Lives in | Skips | Controlled by |
 | --- | --- | --- | --- |
+| Service worker | the user's device | everything, including being online | `public/sw.js` |
 | Browser cache | the user's device | the network | the `Cache-Control` the Worker returns |
 | Workers Cache | a Cloudflare data centre | the Worker and TMDB | the same header, plus `cache.enabled` |
 | Posters | browser and Cloudflare | everything | TMDB's own headers |
@@ -41,6 +43,9 @@ to TMDB. **Only the browser cache removes a request from that count.**
 The Cloudflare cache is per data centre, so a show is fetched once per data centre per TTL,
 not once for the world. Tiered Cache removes that, but it needs a zone and a caching path
 through `fetch()` rather than the Cache API. Reach for it when the volume justifies it.
+
+The service worker tier is the widest of the four: it answers without a network at all. What it
+keeps and how it decides is in [offline.md](offline.md).
 
 ## Limits
 

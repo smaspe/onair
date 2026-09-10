@@ -53,41 +53,47 @@ const TASTE = 50;
 const BEST = TASTE * MAX_VOTES * voteOf(10);
 
 // A show suggested by several of your shows counts several times, each vote worth what
-// that show is worth. A show you dropped only puts its name against a suggestion.
+// that show is worth.
 export const rank = (votes, exclude) => {
   const found = new Map();
 
-  for (const { source, weight, suggestions } of votes) {
+  for (const { name, weight, suggestions } of votes) {
     for (const suggestion of suggestions) {
       if (exclude.has(String(suggestion.id))) continue;
 
-      const seen = found.get(suggestion.id) ?? {
-        ...suggestion,
-        weights: [],
-        from: [],
-        dropped: [],
-      };
-      if (source.dropped) seen.dropped.push(source.name);
-      else {
-        seen.weights.push(weight);
-        seen.from.push(source.name);
-      }
+      const seen = found.get(suggestion.id) ?? { ...suggestion, backers: [] };
+      seen.backers.push({ name, weight });
       found.set(suggestion.id, seen);
     }
   }
 
   // A suggestion scores 10 when three shows you rate 10 all make it, then moves a little
   // with what everyone else makes of it.
-  return [...found.values()]
-    .filter((suggestion) => suggestion.weights.length)
+  const ranked = [...found.values()]
     .map((suggestion) => ({
       ...suggestion,
       score:
-        ((TASTE * strongest(suggestion.weights) +
+        ((TASTE * strongest(suggestion.backers.map((backer) => backer.weight)) +
           settled(suggestion) -
           AVERAGE) /
           BEST) *
         10,
     }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+  // Every backer did suggest the show, so which one to name is free. Naming the one named
+  // least so far spreads the reasons over the shelf. Naming the loudest instead puts the show
+  // you rate highest on nearly every card, which then says nothing about any of them.
+  const named = new Map();
+  for (const suggestion of ranked) {
+    const order = [...suggestion.backers].sort(
+      (a, b) =>
+        (named.get(a.name) ?? 0) - (named.get(b.name) ?? 0) ||
+        b.weight - a.weight,
+    );
+    named.set(order[0].name, (named.get(order[0].name) ?? 0) + 1);
+    suggestion.from = order.map((backer) => backer.name);
+    delete suggestion.backers;
+  }
+  return ranked;
 };

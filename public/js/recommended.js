@@ -1,14 +1,12 @@
 import { fetchRecommendations } from "./tmdb.js";
 import { episodesWatched } from "./model/progress.js";
 import { rank, weightOf } from "./model/recommend.js";
+import { titleOf } from "../state.js";
 
 const SHOWN = 50;
 
 const trackedShows = (shows) =>
   Object.values(shows).filter((show) => !show.dropped);
-
-const droppedShows = (shows) =>
-  Object.values(shows).filter((show) => show.dropped);
 
 // What the shows you watch suggest. Alpine reaches it as $store.recommended.
 export const recommended = {
@@ -45,12 +43,12 @@ export const recommended = {
     this.loaded = true;
     this.note = "Reading what your shows suggest…";
 
-    // A dropped show comes along to put its name against a suggestion, not to vote.
-    const sources = [...watched, ...droppedShows(shows)];
+    // Each show votes under the name the shelf calls it, because the card says which of your
+    // shows put a suggestion there.
     const votes = await Promise.all(
-      sources.map(async (source) => ({
-        source,
-        weight: source.dropped ? 0 : weightOf(source),
+      watched.map(async (source) => ({
+        name: titleOf(source),
+        weight: weightOf(source),
         suggestions: await fetchRecommendations(source.id).catch(() => []),
       })),
     );

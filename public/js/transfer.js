@@ -1,4 +1,4 @@
-import { exportWatched, importWatched } from "./storage.js";
+import { exportWatched, readBackup } from "./storage.js";
 
 const filename = () => `onair-${new Date().toISOString().slice(0, 10)}.json`;
 
@@ -19,18 +19,19 @@ export const transfer = () => ({
     this.note = filename();
   },
 
-  // The file replaces what this browser tracks, so the page starts again from it.
+  // The file adds to what this browser tracks.
   async open(event) {
     const file = event.target.files[0];
     event.target.value = "";
     if (!file) return;
 
     try {
-      const shows = importWatched(await file.text());
-      this.note = `${shows} shows read, reading their episodes…`;
-      location.reload();
+      const watched = readBackup(await file.text());
+      this.note = "reading their episodes…";
+      const added = await this.$store.library.absorb(watched);
+      this.note = `${added} shows added`;
     } catch (failure) {
-      this.note = `That file is ${failure.message}.`;
+      this.note = failure.message;
     }
   },
 });

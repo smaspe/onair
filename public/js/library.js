@@ -1,4 +1,10 @@
-import { blank, loadShows, saveShows } from "./storage.js";
+import {
+  blank,
+  loadShows,
+  loadWaiting,
+  saveShows,
+  saveWaiting,
+} from "./storage.js";
 import { episodesOf, fetchRecord } from "./tmdb.js";
 import { bury, follow, onSession, pull, push, watchedOf } from "./sync.js";
 import { knowsNamedSeasons } from "./model/progress.js";
@@ -7,12 +13,21 @@ import { knowsNamedSeasons } from "./model/progress.js";
 export const library = {
   shows: loadShows(),
 
+  // The shows whose last change did not reach the table, each against the write it still needs.
+  // The change itself is not stored: a show in this list is sent as it now stands.
+  waiting: loadWaiting(),
+
+  get unsent() {
+    return Object.keys(this.waiting).length;
+  },
+
   // Settles once every show knows its name and its episodes. Only the watch progress is
   // stored, so until this resolves a show is an id and nothing else.
   ready: Promise.resolve(),
 
   init() {
     if (Object.keys(this.shows).length) this.ready = this.refresh();
+    addEventListener("online", () => this.catchUp());
 
     let following = false;
     onSession((userId) => {
@@ -26,9 +41,27 @@ export const library = {
     });
   },
 
+  // Whether the table took the change, and what to do again if it did not.
+  settle(id, took, how) {
+    if (took) delete this.waiting[id];
+    else this.waiting[id] = how;
+    saveWaiting(this.waiting);
+  },
+
+  // Every change this browser could not send. It is sent before any row is read, or the older
+  // row replaces the change and this browser then sends that older row back.
+  async catchUp() {
+    for (const [id, how] of Object.entries({ ...this.waiting })) {
+      const took =
+        how === "gone" ? await bury(id) : await push(this.shows[id]);
+      this.settle(id, took, how);
+    }
+  },
+
   // The server holds the library of a signed-in user and this browser caches it, so a row
   // wins over what is held here.
   async adopt() {
+    await this.catchUp();
     const rows = await pull();
     for (const row of rows) this.take(row);
     saveShows(this.shows);
@@ -39,7 +72,9 @@ export const library = {
     await Promise.all(
       Object.values(this.shows)
         .filter((show) => !known.has(show.id))
-        .map(push),
+        .map((show) =>
+          push(show).then((took) => this.settle(show.id, took, "push")),
+        ),
     );
 
     // A show only the server knew is an id and nothing else until TMDB answers for it.
@@ -71,12 +106,31 @@ export const library = {
 
   save(show) {
     saveShows(this.shows);
-    push(show);
+    push(show).then((took) => this.settle(show.id, took, "push"));
   },
 
   async add(id) {
     this.shows[id] = await fetchRecord(id, null);
     this.save(this.shows[id]);
+  },
+
+  // A backup adds to the shelf. A show the file lists takes what the file says about it, a
+  // show the file does not list stays as it is, and no show is removed. The imported progress
+  // is sent to the table at once, or the next read replaces it with the older row.
+  async absorb(watched) {
+    const ids = Object.keys(watched);
+    for (const id of ids)
+      this.shows[id] = { ...(this.shows[id] ?? blank(id)), ...watched[id] };
+    saveShows(this.shows);
+
+    await Promise.all(
+      ids.map((id) =>
+        push(this.shows[id]).then((took) => this.settle(id, took, "push")),
+      ),
+    );
+    this.ready = Promise.all(ids.map((id) => this.reload(id)));
+    await this.ready;
+    return ids.length;
   },
 
   // Only the watch progress is stored, so every load asks TMDB what a show is.
@@ -127,6 +181,6 @@ export const library = {
   remove(id) {
     delete this.shows[id];
     saveShows(this.shows);
-    bury(id);
+    bury(id).then((took) => this.settle(id, took, "gone"));
   },
 };
