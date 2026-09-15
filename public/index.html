@@ -404,7 +404,7 @@
             <div class="line" x-show="tracked">
               <b x-text="`${through(show)}% watched`"></b>
               <span
-                x-text="show.currentEpisode ? `up to ${code({ season: show.currentSeason, episode: show.currentEpisode })}` : 'not started'"
+                x-text="furthest(show)"
               ></span>
             </div>
 
@@ -481,20 +481,13 @@
                   <template x-for="episode in season.episodes" :key="episode.episode">
                     <button
                       class="epi"
-                      :class="{ seen: tracked && season.watched >= episode.episode }"
+                      :class="{ seen: tracked && isWatched(show, season.number, episode.episode) }"
                       :disabled="!tracked || episode.airDate > today()"
-                      @click="
-                        watchTo(
-                          show,
-                          season.number,
-                          episode.episode,
-                          season.watched >= episode.episode,
-                        )
-                      "
+                      @click="tap(show, season.number, episode.episode)"
                     >
                       <span
                         class="tick"
-                        x-text="season.watched >= episode.episode ? '✓' : ''"
+                        x-text="tracked && isWatched(show, season.number, episode.episode) ? '✓' : ''"
                       ></span>
                       <span class="no" x-text="episode.episode"></span>
                       <span class="nm" x-text="episode.title"></span>
@@ -503,6 +496,22 @@
                   </template>
                 </div>
               </details>
+            </template>
+
+            <!-- Marking one episode says nothing about the ones before it, so the offer to
+             mark those too is made rather than assumed. -->
+            <template x-if="catchUp">
+              <div class="upto">
+                <span
+                  x-text="`${catchUp.behind} earlier ${catchUp.behind === 1 ? 'episode is' : 'episodes are'} not marked.`"
+                ></span>
+                <button
+                  class="btn keep"
+                  @click="takeCatchUp(show)"
+                  x-text="catchUp.behind === 1 ? 'Mark it watched' : 'Mark them watched'"
+                ></button>
+                <button class="btn" @click="catchUp = null">No</button>
+              </div>
             </template>
 
             <!-- Stopping is undone by resuming. Only a show you already stopped can be

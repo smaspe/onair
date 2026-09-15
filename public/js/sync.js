@@ -11,19 +11,30 @@ let userId = null;
 const rowOf = (show) => ({
   user_id: userId,
   show_id: Number(show.id),
+  // The furthest episode watched. `watched` is the whole answer; these two are the summary the
+  // table has always stored.
   season: show.currentSeason,
   episode: show.currentEpisode,
+  // A show TMDB has not answered for yet states no set. Null says so. Writing an empty object
+  // would tell another device that every episode was cleared.
+  watched: show.watched ?? null,
   rating: show.rating,
   dropped: show.dropped,
   deleted_at: null,
 });
 
 // What a row says about a show. Everything else about it comes from TMDB.
+//
+// A row that states no set leaves the set on this device alone, and the client builds one from
+// `season` and `episode` instead. A row that states an empty set means the reader cleared every
+// episode, and that is applied. The two are told apart by null, not by emptiness: an empty
+// object is true in a condition, so testing the object itself gets this backwards.
 export const watchedOf = (row) => ({
   currentSeason: row.season,
   currentEpisode: row.episode,
   rating: row.rating,
   dropped: row.dropped,
+  ...(row.watched == null ? {} : { watched: row.watched }),
 });
 
 // Runs once with the session read back from storage, and again on every sign in and sign out.

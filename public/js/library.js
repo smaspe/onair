@@ -7,7 +7,12 @@ import {
 } from "./storage.js";
 import { episodesOf, fetchRecord } from "./tmdb.js";
 import { bury, follow, onSession, pull, push, watchedOf } from "./sync.js";
-import { knowsNamedSeasons } from "./model/progress.js";
+import {
+  knowsNamedSeasons,
+  lastWatched,
+  seen,
+  upTo,
+} from "./model/progress.js";
 
 // The shows, and every change that can happen to them. Alpine reaches it as $store.library.
 export const library = {
@@ -144,6 +149,10 @@ export const library = {
 
   async refresh() {
     await Promise.all(Object.keys(this.shows).map((id) => this.reload(id)));
+    // A record stored under a single mark gains its set of episodes when TMDB answers with the
+    // season lengths. It is written down at once: rebuilding it from the single mark a second
+    // time would flatten any gap made since.
+    saveShows(this.shows);
   },
 
   // A record carries the episodes of the seasons it was fetched for. A reader who looks at
@@ -153,13 +162,38 @@ export const library = {
     show.episodes = [...show.episodes, ...(await episodesOf(show.id, number))];
   },
 
-  // Where the watch mark now stands.
-  markTo(show, season, episode) {
-    show.currentSeason = season;
-    show.currentEpisode = episode;
+  // One episode, marked or cleared.
+  mark(show, season, episode, watched) {
+    const rest = seen(show, season).filter((one) => one !== episode);
+    this.applyMarks(show, {
+      ...show.watched,
+      [season]: watched ? [...rest, episode].sort((a, b) => a - b) : rest,
+    });
+  },
+
+  // Every episode up to and including this one, marked. A mark past it stays.
+  markUpTo(show, season, episode) {
+    const marks = { ...show.watched };
+    for (const [number, episodes] of Object.entries(upTo(show, season, episode)))
+      marks[number] = [...new Set([...seen(show, number), ...episodes])].sort(
+        (a, b) => a - b,
+      );
+    this.applyMarks(show, marks);
+  },
+
+  applyMarks(show, marks) {
+    show.watched = Object.fromEntries(
+      Object.entries(marks).filter(([, episodes]) => episodes.length),
+    );
+
+    // The table stores one season and one episode, and a reader who asks how far they got
+    // wants the same answer.
+    const furthest = lastWatched(show);
+    show.currentSeason = furthest?.season ?? (show.seasons[0]?.number || 1);
+    show.currentEpisode = furthest?.episode ?? 0;
     this.save(show);
 
-    // A record carries the episodes of the seasons it was fetched for, so a move into
+    // A record carries the episodes of the seasons it was fetched for, so a mark that names
     // another one has to ask TMDB for its titles. The card names the next episode.
     if (!knowsNamedSeasons(show)) this.reload(show.id);
   },

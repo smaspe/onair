@@ -3,11 +3,18 @@ const WATCHED_KEY = "onair.watched";
 // shows are, so a show is read from them and sent as it stands when the connection returns.
 const WAITING_KEY = "onair.waiting";
 
-// The whole of what is worth keeping: which episode you are on, what you make of the show,
+// The whole of what is worth keeping: which episodes you watched, what you make of the show,
 // and whether you dropped it. Everything else about a show comes from TMDB on load.
-const WATCHED = ["currentSeason", "currentEpisode", "rating", "dropped"];
+//
+// `currentSeason` and `currentEpisode` are the furthest episode watched. They are written from
+// `watched` and never read back into it, because one mark cannot describe a gap.
+const WATCHED = ["watched", "currentSeason", "currentEpisode", "rating", "dropped"];
 
 // A show before TMDB has answered: enough shape for the model to read.
+//
+// `watched` is absent on purpose. A record that states no set has not been read against the
+// season lengths yet, and is rebuilt from `currentSeason` and `currentEpisode`. An empty set
+// means the reader cleared every episode, which is a different thing.
 const EMPTY = {
   name: "",
   network: "",
@@ -39,9 +46,14 @@ export const loadShows = () =>
 export const saveShows = (shows) => {
   const watched = {};
   for (const [id, show] of Object.entries(shows)) {
-    watched[id] = Object.fromEntries(
+    const kept = Object.fromEntries(
       Object.entries(show).filter(([field]) => WATCHED.includes(field)),
     );
+    // An empty set is written as no set at all: both mean that nothing is marked.
+    const marks = marksOf(show.watched);
+    if (marks) kept.watched = marks;
+    else delete kept.watched;
+    watched[id] = kept;
   }
   localStorage.setItem(WATCHED_KEY, JSON.stringify(watched));
 };
@@ -52,8 +64,35 @@ export const loadWaiting = () => read(WAITING_KEY);
 export const saveWaiting = (waiting) =>
   localStorage.setItem(WAITING_KEY, JSON.stringify(waiting));
 
-// What a backup holds: the watch data, and nothing that TMDB can say again.
-export const exportWatched = () => JSON.stringify(read(WATCHED_KEY), null, 2);
+// What a backup contains: the watch data, and nothing that TMDB can say again. The furthest
+// episode watched is left out, because `watched` already states it. `readBackup` still
+// understands a file that states only that mark, because files written before this one exist.
+export const exportWatched = () =>
+  JSON.stringify(
+    Object.fromEntries(
+      Object.entries(read(WATCHED_KEY)).map(
+        ([id, { currentSeason, currentEpisode, ...keep }]) => [id, keep],
+      ),
+    ),
+    null,
+    2,
+  );
+
+// The marks a file states, read for their shape alone: season numbers against lists of episode
+// numbers. A file written before episodes were marked one by one states none, and the record
+// is rebuilt from the single mark instead.
+const marksOf = (watched) => {
+  if (!watched || typeof watched !== "object" || Array.isArray(watched)) return null;
+  const marks = {};
+  for (const [season, episodes] of Object.entries(watched)) {
+    if (!/^\d+$/.test(season) || !Array.isArray(episodes)) continue;
+    const numbers = [...new Set(episodes.map(Number))]
+      .filter((episode) => Number.isInteger(episode) && episode > 0)
+      .sort((a, b) => a - b);
+    if (numbers.length) marks[season] = numbers;
+  }
+  return Object.keys(marks).length ? marks : null;
+};
 
 // What a file says, read for its shape alone. Anything else in it is left out. The shelf it
 // lands on is not this function's business: it returns the shows and the library adds them.
@@ -70,6 +109,7 @@ export const readBackup = (text) => {
       currentEpisode: Number(show.currentEpisode) || 0,
       rating: Number(show.rating) || null,
       dropped: Boolean(show.dropped),
+      ...(marksOf(show.watched) ? { watched: marksOf(show.watched) } : {}),
     };
   }
   if (!Object.keys(watched).length) throw new Error("No shows in that file.");

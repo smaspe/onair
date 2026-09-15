@@ -9,7 +9,11 @@ import {
   episodesBehind,
   episodesWatched,
   isEnded,
-  nextWatched,
+  isWatched,
+  lastWatched,
+  missingUpTo,
+  nextUnwatched,
+  seen,
   titleAt,
 } from "./js/model/progress.js";
 import { STATES, groupsOf, stateOf, titleOf, totalEpisodes } from "./state.js";
@@ -137,7 +141,15 @@ const shelf = () => ({
     imageAt(show.backdropPath, 780) || imageAt(show.posterPath, 500),
   logo: (show) => imageAt(show.networkLogo, 154),
   behind: episodesBehind,
-  nextCode: (show) => code(nextWatched(show)),
+  nextCode: (show) => {
+    const at = nextUnwatched(show);
+    return at ? code(at) : "";
+  },
+  // How far the reader got, for the line that says so.
+  furthest: (show) => {
+    const at = lastWatched(show);
+    return at ? `up to ${code(at)}` : "not started";
+  },
   code,
   brief,
   airs,
@@ -184,15 +196,15 @@ const shelf = () => ({
     if (this.tab === "discover") return this.because(show);
     const state = stateOf(show);
     if (state === "available") {
-      const at = nextWatched(show);
-      return `${brief(at)} · ${titleAt(show, at)}`.replace(/ · $/, "");
+      const at = nextUnwatched(show);
+      return at ? `${brief(at)} · ${titleAt(show, at)}`.replace(/ · $/, "") : "";
     }
     if (state === "comingUp")
       return `${brief(show.upcoming[0])} · ${airs(show.upcoming[0].airDate)}`;
-    if (state === "dropped")
-      return show.currentEpisode
-        ? `stopped at ${brief({ season: show.currentSeason, episode: show.currentEpisode })}`
-        : "never started";
+    if (state === "dropped") {
+      const at = lastWatched(show);
+      return at ? `stopped at ${brief(at)}` : "never started";
+    }
     if (state === "finished") return `${totalEpisodes(show)} episodes`;
     return show.network || "still running";
   },
@@ -201,14 +213,13 @@ const shelf = () => ({
     return show.seasons.map((season) => ({
       ...season,
       episodes: (show.episodes ?? []).filter((e) => e.season === season.number),
-      watched:
-        season.number < show.currentSeason
-          ? season.episodeCount
-          : season.number === show.currentSeason
-            ? show.currentEpisode
-            : 0,
+      watched: seen(show, season.number).filter(
+        (episode) => episode <= season.episodeCount,
+      ).length,
     }));
   },
+
+  isWatched,
 
   fold(show, number, isOpen) {
     this.unfolded = isOpen
@@ -224,24 +235,29 @@ const shelf = () => ({
     return rated.map((season) => ({
       ...season,
       height: Math.round((season.score / peak) * 100),
-      here: season.number === this.show.currentSeason,
+      here: season.number === (nextUnwatched(this.show)?.season ?? 0),
     }));
   },
 
-  // An episode you have seen is a place to stop: pressing it puts the mark just before it, so
-  // the first episode of a show can be unwatched. An episode you have not seen is a place to
-  // reach: pressing it marks everything up to and including it.
-  watchTo(show, season, episode, watched) {
-    const at = watched ? this.before(show, season, episode) : { season, episode };
-    this.$store.library.markTo(show, at.season, at.episode);
+  // Pressing an episode marks that episode, and pressing it again clears it. Nothing before it
+  // is touched, because watching out of order and skipping an episode are ordinary.
+  //
+  // Marking one episode while earlier ones are unmarked is also how somebody who has watched
+  // the lot says so, which is what the offer below is for.
+  catchUp: null,
+
+  tap(show, season, episode) {
+    const watched = isWatched(show, season, episode);
+    this.$store.library.mark(show, season, episode, !watched);
+
+    // Counted after the mark, so the episode just pressed is not one of them.
+    const behind = watched ? 0 : missingUpTo(show, season, episode);
+    this.catchUp = behind ? { season, episode, behind } : null;
   },
 
-  before(show, season, episode) {
-    if (episode > 1) return { season, episode: episode - 1 };
-    const earlier = [...show.seasons].reverse().find((s) => s.number < season);
-    return earlier
-      ? { season: earlier.number, episode: earlier.episodeCount }
-      : { season, episode: 0 };
+  takeCatchUp(show) {
+    this.$store.library.markUpTo(show, this.catchUp.season, this.catchUp.episode);
+    this.catchUp = null;
   },
 
   // Typing settles before the search runs, so a title costs one request rather than one per
@@ -289,6 +305,7 @@ const shelf = () => ({
   async look(id) {
     this.finding = false;
     this.unfolded = [];
+    this.catchUp = null;
     this.open = null;
     this.preview = await fetchRecord(id, null);
   },
@@ -304,7 +321,7 @@ const shelf = () => ({
     const id = this.preview.id;
     await this.$store.library.add(id);
     this.open = id;
-    this.unfolded = [this.$store.library.shows[id]?.currentSeason].filter(Boolean);
+    this.unfolded = this.opening(id);
     this.preview = null;
     this.tab = "available";
     this.arrived = id;
@@ -328,15 +345,22 @@ const shelf = () => ({
     this.open = null;
     this.preview = null;
     this.unfolded = [];
+    this.catchUp = null;
     this.reveal();
   },
 
-  // The season being watched starts unfolded, but it is unfolded like any other: put in the
-  // list, and taken out again when the reader closes it. A season held open by a rule cannot
-  // be shut.
+  // The season with the next episode to watch starts unfolded, but it is unfolded like any
+  // other: put in the list, and taken out again when the reader closes it. A season held open
+  // by a rule cannot be shut.
+  opening(id) {
+    const show = this.$store.library.shows[id];
+    return [show && nextUnwatched(show)?.season].filter(Boolean);
+  },
+
   look_at(id) {
     this.open = id;
-    this.unfolded = [this.$store.library.shows[id]?.currentSeason].filter(Boolean);
+    this.catchUp = null;
+    this.unfolded = this.opening(id);
   },
 
   // Three answers, and the third one is to have no answer: no attribute and no stored key,

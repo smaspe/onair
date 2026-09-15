@@ -1,4 +1,4 @@
-import { nextWatched } from "./model/progress.js";
+import { lastWatched, nextUnwatched, upTo } from "./model/progress.js";
 
 // The Worker on this origin holds the TMDB key and forwards these paths. Same origin, so
 // no CORS, and no key ever reaches the browser.
@@ -110,16 +110,26 @@ export const fetchRecord = async (id, existing) => {
       score: season.vote_average || null,
     }));
 
-  const currentSeason = existing?.currentSeason ?? (seasons[0]?.number || 1);
-  const currentEpisode = existing?.currentEpisode ?? 0;
+  // A record stored before episodes were marked one by one states a single mark. Every episode
+  // up to that mark is watched, which is what the single mark meant. The expansion happens here
+  // because this is where the mark and the season list meet.
+  const watched =
+    existing?.watched ??
+    (existing?.currentEpisode
+      ? upTo({ seasons }, existing.currentSeason, existing.currentEpisode)
+      : {});
+
+  const held = { seasons, watched };
+  const furthest = lastWatched(held);
   const next = details.next_episode_to_air;
 
-  // The card names three episodes: the one watched, the one after it, and the one still to air.
-  const wanted = new Set([
-    currentSeason,
-    nextWatched({ seasons, currentSeason, currentEpisode }).season,
-  ]);
+  // The card names three episodes: the furthest watched, the next one to watch, and the one
+  // still to air.
+  const wanted = new Set(
+    [furthest?.season, nextUnwatched(held)?.season].filter(Boolean),
+  );
   if (next) wanted.add(next.season_number);
+  if (!wanted.size) wanted.add(seasons[0]?.number || 1);
   const episodes = (
     await Promise.all([...wanted].map((number) => episodesOf(id, number)))
   ).flat();
@@ -149,7 +159,10 @@ export const fetchRecord = async (id, existing) => {
     upcoming: upcoming.length ? upcoming : [episodeRef(next)].filter(Boolean),
     dropped: existing?.dropped || false,
     rating: existing?.rating ?? null,
-    currentSeason,
-    currentEpisode,
+    watched,
+    // The furthest episode watched. The table needs a season and an episode, and a reader
+    // asked how far they got wants this answer.
+    currentSeason: furthest?.season ?? (seasons[0]?.number || 1),
+    currentEpisode: furthest?.episode ?? 0,
   };
 };

@@ -1,16 +1,33 @@
 -- The watch data of a signed-in user: which episode they reached, what they make of the
 -- show, and whether they dropped it.
 --
--- This file is the schema. Edit it, then run `supabase db diff -f <name>` to generate the
--- migration that gets there. The files under migrations/ are generated and are not meant to
--- be read; this one is.
+-- This file is the schema. Edit it, then generate the migration that gets there:
+--
+--   supabase db schema declarative sync -f <name>
+--
+-- The command compares the migrations against this tree. The files under migrations/ are
+-- generated and are not meant to be read; this one is.
 
 create table progress (
   user_id    uuid references auth.users on delete cascade,
   show_id    int,
   imdb_id    text,
+
+  -- Which episodes are watched: season number against the list of episode numbers in it. A
+  -- reader can watch episodes in any order and can leave a gap behind them, so one mark
+  -- cannot state this.
+  --
+  -- Null means the row does not state a set, and the client builds one from `season` and
+  -- `episode` below. An empty object means the reader cleared every episode. A default of
+  -- '{}' would make those two the same, and would read as "nothing watched" against a client
+  -- that knows better.
+  watched    jsonb,
+
+  -- The furthest episode watched. A client writes these from `watched`, and reads them only
+  -- to build `watched` for a row that has none.
   season     int  not null,
   episode    int  not null,
+
   rating     int,
   dropped    bool not null default false,
   deleted_at timestamptz,
