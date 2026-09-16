@@ -5,10 +5,7 @@ const WAITING_KEY = "onair.waiting";
 
 // The whole of what is worth keeping: which episodes you watched, what you make of the show,
 // and whether you dropped it. Everything else about a show comes from TMDB on load.
-//
-// `currentSeason` and `currentEpisode` are the furthest episode watched. They are written from
-// `watched` and never read back into it, because one mark cannot describe a gap.
-const WATCHED = ["watched", "currentSeason", "currentEpisode", "rating", "dropped"];
+const WATCHED = ["watched", "rating", "dropped"];
 
 // A show before TMDB has answered: enough shape for the model to read.
 //

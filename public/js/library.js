@@ -66,21 +66,13 @@ export const library = {
   // The server holds the library of a signed-in user and this browser caches it, so a row
   // wins over what is held here.
   async adopt() {
+    // A show is sent as it stands, and it stands only once TMDB has answered for it.
+    await this.ready;
     await this.catchUp();
+
     const rows = await pull();
     for (const row of rows) this.take(row);
     saveShows(this.shows);
-
-    // A show only this browser knows goes up. That is what carries a library built without
-    // an account into one on the first sign in.
-    const known = new Set(rows.map((row) => row.show_id));
-    await Promise.all(
-      Object.values(this.shows)
-        .filter((show) => !known.has(show.id))
-        .map((show) =>
-          push(show).then((took) => this.settle(show.id, took, "push")),
-        ),
-    );
 
     // A show only the server knew is an id and nothing else until TMDB answers for it.
     this.ready = Promise.all(
@@ -89,6 +81,18 @@ export const library = {
         .map((show) => this.reload(show.id)),
     );
     await this.ready;
+
+    // Every show whose row states no set goes up, and so does every show the table never heard
+    // of. The second is what carries a library built without an account into one on the first
+    // sign in. Both are answered by the set this browser worked out.
+    const stated = new Map(rows.map((row) => [row.show_id, row.watched]));
+    await Promise.all(
+      Object.values(this.shows)
+        .filter((show) => stated.get(show.id) == null)
+        .map((show) =>
+          push(show).then((took) => this.settle(show.id, took, "push")),
+        ),
+    );
   },
 
   // A change another device made. It is written straight to storage: sending it back would
@@ -185,12 +189,6 @@ export const library = {
     show.watched = Object.fromEntries(
       Object.entries(marks).filter(([, episodes]) => episodes.length),
     );
-
-    // The table stores one season and one episode, and a reader who asks how far they got
-    // wants the same answer.
-    const furthest = lastWatched(show);
-    show.currentSeason = furthest?.season ?? (show.seasons[0]?.number || 1);
-    show.currentEpisode = furthest?.episode ?? 0;
     this.save(show);
 
     // A record carries the episodes of the seasons it was fetched for, so a mark that names

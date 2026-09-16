@@ -17,16 +17,15 @@ create table progress (
   -- reader can watch episodes in any order and can leave a gap behind them, so one mark
   -- cannot state this.
   --
-  -- Null means the row does not state a set, and the client builds one from `season` and
-  -- `episode` below. An empty object means the reader cleared every episode. A default of
-  -- '{}' would make those two the same, and would read as "nothing watched" against a client
-  -- that knows better.
+  -- Null means the row does not state a set yet. A client that knows the set sends it. An
+  -- empty object means the reader cleared every episode, which is a different thing, so this
+  -- column has no default: '{}' would make the two the same.
   watched    jsonb,
 
-  -- The furthest episode watched. A client writes these from `watched`, and reads them only
-  -- to build `watched` for a row that has none.
-  season     int  not null,
-  episode    int  not null,
+  -- The furthest episode watched. No client writes these any more, and they are dropped once
+  -- every row states a set — until then they are the only record of a row that does not.
+  season     int,
+  episode    int,
 
   rating     int,
   dropped    bool not null default false,

@@ -110,9 +110,9 @@ export const fetchRecord = async (id, existing) => {
       score: season.vote_average || null,
     }));
 
-  // A record stored before episodes were marked one by one states a single mark. Every episode
-  // up to that mark is watched, which is what the single mark meant. The expansion happens here
-  // because this is where the mark and the season list meet.
+  // A backup file written before episodes were marked one by one states a single mark instead
+  // of a set. Every episode up to that mark is watched, which is what the mark meant. The
+  // expansion happens here because this is where the mark and the season list meet.
   const watched =
     existing?.watched ??
     (existing?.currentEpisode
@@ -160,9 +160,5 @@ export const fetchRecord = async (id, existing) => {
     dropped: existing?.dropped || false,
     rating: existing?.rating ?? null,
     watched,
-    // The furthest episode watched. The table needs a season and an episode, and a reader
-    // asked how far they got wants this answer.
-    currentSeason: furthest?.season ?? (seasons[0]?.number || 1),
-    currentEpisode: furthest?.episode ?? 0,
   };
 };
