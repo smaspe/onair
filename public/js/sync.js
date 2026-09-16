@@ -21,19 +21,15 @@ const rowOf = (show) => ({
 
 // What a row says about a show. Everything else about it comes from TMDB.
 //
-// A row that states a set is the whole answer. An empty set means the reader cleared every
-// episode, which is why the two cases are told apart by null and not by emptiness: an empty
-// object is true in a condition, so testing the object itself gets this backwards.
-//
-// A row that states no set still states the single mark it was written with, and the set is
-// rebuilt from that mark. This is the only reader of `season` and `episode` left, and it goes
-// when those columns go.
-export const watchedOf = (row) => {
-  const held = { rating: row.rating, dropped: row.dropped };
-  return row.watched == null
-    ? { ...held, currentSeason: row.season, currentEpisode: row.episode }
-    : { ...held, watched: row.watched };
-};
+// An empty set means the reader cleared every episode, and that is applied. A row that states
+// no set at all leaves the set on this device alone, and this browser sends it one. The two are
+// told apart by null and not by emptiness: an empty object is true in a condition, so testing
+// the object itself gets this backwards.
+export const watchedOf = (row) => ({
+  rating: row.rating,
+  dropped: row.dropped,
+  ...(row.watched == null ? {} : { watched: row.watched }),
+});
 
 // Runs once with the session read back from storage, and again on every sign in and sign out.
 export const onSession = async (handle) => {

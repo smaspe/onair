@@ -1,4 +1,4 @@
--- The watch data of a signed-in user: which episode they reached, what they make of the
+-- The watch data of a signed-in user: which episodes they watched, what they make of the
 -- show, and whether they dropped it.
 --
 -- This file is the schema. Edit it, then generate the migration that gets there:
@@ -14,18 +14,12 @@ create table progress (
   imdb_id    text,
 
   -- Which episodes are watched: season number against the list of episode numbers in it. A
-  -- reader can watch episodes in any order and can leave a gap behind them, so one mark
-  -- cannot state this.
+  -- reader can watch episodes in any order and can leave a gap behind them.
   --
-  -- Null means the row does not state a set yet. A client that knows the set sends it. An
-  -- empty object means the reader cleared every episode, which is a different thing, so this
-  -- column has no default: '{}' would make the two the same.
+  -- An empty object means the reader cleared every episode. Null means the row states nothing,
+  -- which is what a row written before this column looks like; a client that knows the set
+  -- sends it. The column has no default because '{}' would make those two the same.
   watched    jsonb,
-
-  -- The furthest episode watched. No client writes these any more, and they are dropped once
-  -- every row states a set — until then they are the only record of a row that does not.
-  season     int,
-  episode    int,
 
   rating     int,
   dropped    bool not null default false,
