@@ -238,20 +238,25 @@ main { padding: 1.6rem 0 4rem; }
 }
 .sheet {
   --sheet: min(100%, 30rem);
+  /* How far the bar has taken the name over from the picture: 0 while the picture still shows
+     it, 1 once the text has covered the picture. The scroll sets `--scrolled`, so both ends of
+     the exchange follow the reader's finger instead of running on a timer of their own. */
+  --named: clamp(0, calc((var(--scrolled, 0) - 90) / 70), 1);
   position: fixed; inset: 0 0 0 auto; z-index: 31; width: var(--sheet);
   background: var(--panel); border-left: 1px solid var(--rule); overflow-y: auto;
   box-shadow: -12px 0 40px var(--shade);
 }
-/* The name of the show, on a bar the width of the sheet, for when the picture that carries the
-   name is behind the text. */
+/* The name of the show, on a bar the width of the sheet. It is a label and nothing in it can be
+   pressed, so it never takes a press meant for the text under it. */
 .crown {
   position: fixed; z-index: 32; top: 0; right: 0; width: var(--sheet);
   height: 3.6rem; line-height: 3.6rem; padding: 0 3.4rem 0 1.5rem;
   background: var(--panel); border-bottom: 1px solid var(--rule); font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  opacity: var(--named);
+  transform: translateY(calc((var(--named) - 1) * 0.7rem));
 }
-.sheet.scrolled .crown { opacity: 1; visibility: visible; }
 /* The poster fills the head of the sheet. The text sits on a scrim rather than on the art, so
    it reads whatever the poster happens to be. */
 /* Sixteen by nine, because that is the shape of the still it holds. The picture stays where it
@@ -267,11 +272,13 @@ main { padding: 1.6rem 0 4rem; }
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(to top, rgba(8, 11, 13, 0.94) 12%, rgba(8, 11, 13, 0.55) 52%, rgba(8, 11, 13, 0.15));
 }
+/* The picture's own copy of the name gives way as the bar takes it, and drifts as it goes, so
+   the two read as one exchange rather than two fades. */
 .hero .lift {
   position: relative; z-index: 1; padding: 1.3rem 1.5rem 1.15rem;
-  transition: opacity 0.2s;
+  opacity: calc(1 - var(--named));
+  transform: translateY(calc(var(--named) * -1.2rem));
 }
-.sheet.scrolled .hero .lift { opacity: 0; }
 .hero h2 {
   margin: 0.25rem 0 0.2rem; font-size: 1.6rem; font-weight: 600;
   letter-spacing: -0.015em; text-wrap: balance; color: #fff;

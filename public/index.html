@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>ONAIR — track what you watch, one shelf at a time</title>
+    <title>ONAIR — track what you watch</title>
     <meta
       name="description"
       content="A television tracker: see which episode you are on, what has aired that you have not seen, and when the next one is due. Works without an account; sign in to sync across devices."
@@ -362,9 +362,9 @@
         <aside
           class="sheet"
           aria-label="Show details"
-          :class="{ scrolled }"
-          x-init="scrolled = false"
-          @scroll="scrolled = $el.scrollTop > 140"
+          :style="`--scrolled:${scrolled}`"
+          x-init="scrolled = 0"
+          @scroll="scrolled = $el.scrollTop"
         >
           <!-- The close button keeps its place while the sheet scrolls. The name joins it once
            the picture has gone behind the text, so the sheet always says which show it is

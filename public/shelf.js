@@ -67,9 +67,9 @@ const shelf = () => ({
   finding: false,
   // A show found by searching, held long enough to look at before deciding to track it.
   preview: null,
-  // Whether the sheet is scrolled far enough that the picture no longer says which show this
-  // is. The sheet sets it as it scrolls, and starts each show with it clear.
-  scrolled: false,
+  // How far the open sheet is scrolled, in pixels. The stylesheet turns it into the exchange
+  // between the name on the picture and the name on the bar. Each show starts at the top.
+  scrolled: 0,
   // Which seasons the reader has opened. Held here, not on the <details>, because the element
   // is rebuilt when its episodes arrive and would otherwise shut itself.
   unfolded: [],
