@@ -8,6 +8,7 @@ import {
 import { episodesOf, fetchRecord } from "./tmdb.js";
 import { bury, follow, onSession, pull, push, watchedOf } from "./sync.js";
 import {
+  episodesWatched,
   knowsNamedSeasons,
   lastWatched,
   seen,
@@ -191,9 +192,14 @@ export const library = {
   },
 
   applyMarks(show, marks) {
+    const before = episodesWatched(show);
     show.watched = Object.fromEntries(
       Object.entries(marks).filter(([, episodes]) => episodes.length),
     );
+    // When an episode was last marked watched, which a change that only clears marks does not
+    // move. Nothing reads it yet.
+    if (episodesWatched(show) > before)
+      show.markedAt = new Date().toISOString();
     this.save(show);
 
     // A record carries the episodes of the seasons it was fetched for, so a mark that names

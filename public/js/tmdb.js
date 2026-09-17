@@ -152,5 +152,6 @@ export const fetchRecord = async (id, existing) => {
     dropped: existing?.dropped || false,
     rating: existing?.rating ?? null,
     watched,
+    markedAt: existing?.markedAt,
   };
 };

@@ -74,11 +74,16 @@ The whole shell is read again as one set, or not at all, so a load draws one dep
 mix of two.
 
 The cost is one stale load after a deploy. A page asks the worker to check when it opens, and
-again whenever the reader comes back to the tab. The worker reads the `ETag` of one file of the
-shell and compares it against the tag the cache was built from. When they differ it reads the
-whole shell again, and only then messages the pages, so the reload a page offers serves the new
-deploy. The page never changes while someone reads it. Cloudflare serves an `ETag` that is a
-hash of the file, so this needs no version number and no build step to write one.
+again whenever the reader comes back to the tab. The worker reads the whole shell again and
+compares the `ETag` of every file against the tags it held. When any of them differ the files
+are already in the cache, and only then does it message the pages, so the reload a page offers
+serves the new deploy. The page never changes while someone reads it.
+
+Cloudflare serves an `ETag` that is a hash of the file, so this needs no version number and no
+build step to write one. It also means an unchanged file keeps its tag across a deploy, which is
+why every file is asked about rather than one of them: a deploy that changes a single file is
+invisible to any other file's tag. Reading the shell again costs a conditional request per file,
+so the worker does it at most once a minute however often the pages ask.
 
 A search is not cached. It is typed once and the answer is never wanted again.
 

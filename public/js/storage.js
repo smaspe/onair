@@ -3,9 +3,10 @@ const WATCHED_KEY = "onair.watched";
 // shows are, so a show is read from them and sent as it stands when the connection returns.
 const WAITING_KEY = "onair.waiting";
 
-// The whole of what is worth keeping: which episodes you watched, what you make of the show,
-// and whether you dropped it. Everything else about a show comes from TMDB on load.
-const WATCHED = ["watched", "rating", "dropped"];
+// The whole of what is worth keeping: which episodes you watched, when you last marked one,
+// what you make of the show, and whether you dropped it. Everything else about a show comes
+// from TMDB on load.
+const WATCHED = ["watched", "markedAt", "rating", "dropped"];
 
 // A show before TMDB has answered: enough shape for the model to read. `watched` is absent
 // rather than empty, so that a record which states nothing is told apart from one whose reader
@@ -93,6 +94,8 @@ export const readBackup = (text) => {
       rating: Number(show.rating) || null,
       dropped: Boolean(show.dropped),
       ...(marks ? { watched: marks } : {}),
+      // A show nobody has marked states no time, so a file that gives none is not corrected.
+      ...(typeof show.markedAt === "string" ? { markedAt: show.markedAt } : {}),
     };
   }
   if (!Object.keys(watched).length) throw new Error("No shows in that file.");

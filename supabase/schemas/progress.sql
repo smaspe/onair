@@ -3,10 +3,14 @@
 --
 -- This file is the schema. Edit it, then generate the migration that gets there:
 --
---   supabase db schema declarative sync -f <name>
+--   supabase db schema declarative sync -f <name> --no-apply
 --
--- The command compares the migrations against this tree. The files under migrations/ are
--- generated and are not meant to be read; this one is.
+-- The command compares the migrations against this tree. `--no-apply` writes the migration and
+-- stops. Without it the command offers to apply the migration to a local database, and this
+-- project has none: it works against the linked project. For the same reason, do not pass the
+-- global --yes, which takes that offer.
+--
+-- The files under migrations/ are generated and are not meant to be read; this one is.
 
 create table progress (
   user_id    uuid references auth.users on delete cascade,
@@ -20,6 +24,13 @@ create table progress (
   -- which is what a row written before this column looks like; a client that knows the set
   -- sends it. The column has no default because '{}' would make those two the same.
   watched    jsonb,
+
+  -- When the reader last marked an episode of this show as watched. It counts marks and not
+  -- clears: a reader who removes a mark does not move this time.
+  --
+  -- A client that has no such time leaves the column out, so the row takes the table's clock
+  -- instead. Nothing reads this column yet.
+  marked_at  timestamptz not null default now(),
 
   rating     int,
   dropped    bool not null default false,

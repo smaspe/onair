@@ -31,6 +31,7 @@ create table progress (
   show_id    int,
   imdb_id    text,
   watched    jsonb,
+  marked_at  timestamptz not null default now(),
   rating     int,
   dropped    bool not null default false,
   deleted_at timestamptz,
@@ -43,6 +44,11 @@ create table progress (
 in it. A reader can watch episodes in any order and can leave a gap behind them, so the answer
 is a set and not a position. An empty object means every episode was cleared; null means the row
 states nothing, and a client that knows the set sends it.
+
+`marked_at` is when the reader last marked an episode of that show as watched. It follows marks
+and not clears. A client with no such time leaves the column out, and the row then takes the
+table's clock. **Nothing reads this column yet.** It is stored so that a later feature can order
+shows by how recently they were watched, which no other column answers.
 
 Row level security limits every row to `auth.uid() = user_id`. A trigger sets `updated_at`.
 Clients must not send that column: one server clock decides the order, so a device with a

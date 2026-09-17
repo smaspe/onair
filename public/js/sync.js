@@ -17,6 +17,9 @@ const rowOf = (show) => ({
   rating: show.rating,
   dropped: show.dropped,
   deleted_at: null,
+  // A show nobody has marked has no time to state. The column is left out rather than sent as
+  // null: a row that exists keeps the time it has, and a new row takes the table's own clock.
+  ...(show.markedAt ? { marked_at: show.markedAt } : {}),
 });
 
 // What a row says about a show. Everything else about it comes from TMDB.
@@ -28,6 +31,7 @@ const rowOf = (show) => ({
 export const watchedOf = (row) => ({
   rating: row.rating,
   dropped: row.dropped,
+  markedAt: row.marked_at,
   ...(row.watched == null ? {} : { watched: row.watched }),
 });
 
