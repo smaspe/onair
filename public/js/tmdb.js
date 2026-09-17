@@ -1,4 +1,4 @@
-import { lastWatched, nextUnwatched, upTo } from "./model/progress.js";
+import { lastWatched, nextUnwatched } from "./model/progress.js";
 
 // The Worker on this origin holds the TMDB key and forwards these paths. Same origin, so
 // no CORS, and no key ever reaches the browser.
@@ -110,15 +110,7 @@ export const fetchRecord = async (id, existing) => {
       score: season.vote_average || null,
     }));
 
-  // A backup file written before episodes were marked one by one states a single mark instead
-  // of a set. Every episode up to that mark is watched, which is what the mark meant. The
-  // expansion happens here because this is where the mark and the season list meet.
-  const watched =
-    existing?.watched ??
-    (existing?.currentEpisode
-      ? upTo({ seasons }, existing.currentSeason, existing.currentEpisode)
-      : {});
-
+  const watched = existing?.watched ?? {};
   const held = { seasons, watched };
   const furthest = lastWatched(held);
   const next = details.next_episode_to_air;

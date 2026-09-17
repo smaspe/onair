@@ -39,13 +39,35 @@ const filed = (show) => {
   return articles ? title.replace(articles, "") : title;
 };
 
+// How many days ago the last episode arrived, for a show that had one in the last week.
+// Anything older is not news and files by title with the rest.
+const WEEK = 7;
+
+const daysSince = (show) => {
+  if (!show.last?.airDate) return null;
+  const days = Math.round(
+    (new Date().setHours(0, 0, 0, 0) -
+      new Date(`${show.last.airDate}T00:00:00`)) /
+      86400000,
+  );
+  return days >= 0 && days <= WEEK ? days : null;
+};
+
+// A show that gained an episode this week comes first, the newest of them at the top. It is
+// the answer to "what is new", which a title sort buries.
+const byArrival = (a, b) => {
+  const [first, second] = [daysSince(a), daysSince(b)];
+  if (first !== null && second !== null) return first - second;
+  if (first !== null) return -1;
+  if (second !== null) return 1;
+  return filed(a).localeCompare(filed(b));
+};
+
 export const groupsOf = (shows) => {
   const held = {};
   STATES.forEach((state) => (held[state.key] = []));
   Object.values(shows).forEach((show) => held[stateOf(show)].push(show));
-  Object.values(held).forEach((list) =>
-    list.sort((a, b) => filed(a).localeCompare(filed(b))),
-  );
+  Object.values(held).forEach((list) => list.sort(byArrival));
   return held;
 };
 

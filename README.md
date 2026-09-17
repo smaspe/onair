@@ -18,9 +18,10 @@ One shelf of posters, and a tab for each state a tracked show can be in:
 
 A poster shows the count of what has aired and you have not seen, how far through the run you
 are, and how long ago the last episode arrived. Opening one gives a sheet: the artwork, what
-everyone made of each season, and the seasons themselves. Pressing an episode you have not seen
-marks everything up to it; pressing one you have seen unmarks from there, so the first episode
-of a show can be unwatched.
+everyone made of each season, and the seasons themselves. Pressing an episode marks it, and
+pressing it again clears it. Nothing else is touched: you can skip an episode, come back to it
+later, and watch a series in whatever order it reached you. When you mark one while earlier
+episodes are unmarked, the sheet offers to mark those too.
 
 It works with no account, and it works with no network.
 

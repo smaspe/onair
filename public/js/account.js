@@ -1,4 +1,5 @@
 import { client } from "./supabase.js";
+import { library } from "./library.js";
 
 // Who is signed in, and the two ways to change that. Alpine reaches it as $store.account.
 // The masthead and the sign-in dialog both read it, and they sit in different places on the
@@ -39,8 +40,11 @@ export const account = {
       this.note = "check your email for the confirmation link";
   },
 
+  // The shelf is cleared here rather than on every session that reports nobody, because a
+  // reader who never signed in also reports nobody and their library is their own.
   async signOut() {
     const { error } = await (await client()).auth.signOut();
+    if (!error) library.forget();
     this.report(error);
   },
 

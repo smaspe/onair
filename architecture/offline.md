@@ -5,9 +5,9 @@ a plan.
 
 ## Why it needs saying at all
 
-Only the watch progress is stored: which episode you are on, what you made of the show, and
-whether you dropped it. Four fields per show. Everything else — the title, the seasons, the air
-dates, the artwork — is asked of TMDB on every load and thrown away.
+Only the watch progress is stored: which episodes you watched, what you made of the show, and
+whether you dropped it. Everything else — the title, the seasons, the air dates, the artwork —
+is asked of TMDB on every load and thrown away.
 
 That keeps the storage small and the backup file honest, but it has one consequence: **a
 browser with no network knows a list of numbers.** Not a shelf with missing pictures. Sixty-odd
@@ -26,7 +26,7 @@ So offline needs two separate things, and they fail in different directions:
 flowchart TB
   subgraph browser["The browser"]
     subgraph ls["localStorage"]
-      watched["onair.watched<br/>four fields per show"]
+      watched["onair.watched<br/>the set, the rating, the dropped flag"]
       waiting["onair.waiting<br/>ids with an unsent change"]
       theme["onair.theme"]
     end
@@ -137,9 +137,9 @@ whole of what there is to remember about it.
 
 ### Why a separate key and not a field on the show
 
-`onair.watched` is filtered to four fields on every write, and those four fields are also what
-the backup file contains and what the table row contains. A fifth field for "not sent yet"
-would follow the show into the export and into Postgres, where it means nothing: whether *this*
+`onair.watched` is filtered to a fixed set of fields on every write, and those same fields are
+what the backup file contains and what the table row contains. One more for "not sent yet" would
+follow the show into the export and into Postgres, where it means nothing: whether *this*
 browser managed to reach the table is a fact about the browser, not about the show.
 
 Keeping it in `onair.waiting` also means a reader who never signs in never writes the key at

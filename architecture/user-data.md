@@ -30,8 +30,7 @@ create table progress (
   user_id    uuid references auth.users on delete cascade,
   show_id    int,
   imdb_id    text,
-  season     int  not null,
-  episode    int  not null,
+  watched    jsonb,
   rating     int,
   dropped    bool not null default false,
   deleted_at timestamptz,
@@ -39,6 +38,11 @@ create table progress (
   primary key (user_id, show_id)
 );
 ```
+
+`watched` states which episodes are watched: season number against the list of episode numbers
+in it. A reader can watch episodes in any order and can leave a gap behind them, so the answer
+is a set and not a position. An empty object means every episode was cleared; null means the row
+states nothing, and a client that knows the set sends it.
 
 Row level security limits every row to `auth.uid() = user_id`. A trigger sets `updated_at`.
 Clients must not send that column: one server clock decides the order, so a device with a
@@ -63,9 +67,8 @@ Conflicts only happen when two devices write the same show.
 **The newer row wins.** A rating and a dropped flag are opinions, so the latest one holds.
 
 **A realtime subscription keeps clients fresh.** This is what makes the rule above safe. A tab
-left open for a week holds stale progress, and a click in that tab writes a lower episode
-number over a higher one. The subscription removes the stale state instead of merging around
-it.
+left open for a week states a stale set, and a press in that tab writes that set over a newer
+one. The subscription removes the stale state instead of merging around it.
 
 **A delete leaves a tombstone.** `deleted_at` marks the row and reads filter it out. A hard
 delete lets a second device write the row again.

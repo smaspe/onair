@@ -7,11 +7,9 @@ const WAITING_KEY = "onair.waiting";
 // and whether you dropped it. Everything else about a show comes from TMDB on load.
 const WATCHED = ["watched", "rating", "dropped"];
 
-// A show before TMDB has answered: enough shape for the model to read.
-//
-// `watched` is absent on purpose. A record that states no set has not been read against the
-// season lengths yet, and is rebuilt from `currentSeason` and `currentEpisode`. An empty set
-// means the reader cleared every episode, which is a different thing.
+// A show before TMDB has answered: enough shape for the model to read. `watched` is absent
+// rather than empty, so that a record which states nothing is told apart from one whose reader
+// cleared every episode.
 const EMPTY = {
   name: "",
   network: "",
@@ -61,23 +59,12 @@ export const loadWaiting = () => read(WAITING_KEY);
 export const saveWaiting = (waiting) =>
   localStorage.setItem(WAITING_KEY, JSON.stringify(waiting));
 
-// What a backup contains: the watch data, and nothing that TMDB can say again. The furthest
-// episode watched is left out, because `watched` already states it. `readBackup` still
-// understands a file that states only that mark, because files written before this one exist.
+// What a backup contains: the watch data, and nothing that TMDB can say again.
 export const exportWatched = () =>
-  JSON.stringify(
-    Object.fromEntries(
-      Object.entries(read(WATCHED_KEY)).map(
-        ([id, { currentSeason, currentEpisode, ...keep }]) => [id, keep],
-      ),
-    ),
-    null,
-    2,
-  );
+  JSON.stringify(read(WATCHED_KEY), null, 2);
 
 // The marks a file states, read for their shape alone: season numbers against lists of episode
-// numbers. A file written before episodes were marked one by one states none, and the record
-// is rebuilt from the single mark instead.
+// numbers.
 const marksOf = (watched) => {
   if (!watched || typeof watched !== "object" || Array.isArray(watched)) return null;
   const marks = {};
@@ -101,12 +88,11 @@ export const readBackup = (text) => {
   const watched = {};
   for (const [id, show] of Object.entries(parsed)) {
     if (!/^\d+$/.test(id) || !show || typeof show !== "object") continue;
+    const marks = marksOf(show.watched);
     watched[id] = {
-      currentSeason: Number(show.currentSeason) || 1,
-      currentEpisode: Number(show.currentEpisode) || 0,
       rating: Number(show.rating) || null,
       dropped: Boolean(show.dropped),
-      ...(marksOf(show.watched) ? { watched: marksOf(show.watched) } : {}),
+      ...(marks ? { watched: marks } : {}),
     };
   }
   if (!Object.keys(watched).length) throw new Error("No shows in that file.");

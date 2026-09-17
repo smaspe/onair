@@ -27,11 +27,11 @@ flowchart LR
 
 ## What is kept where
 
-**Only the watch progress is stored** — which episode you are on, what you made of the show,
+**Only the watch progress is stored** — which episodes you watched, what you made of the show,
 and whether you dropped it. Everything else about a show is asked of TMDB on every load. That
 one decision explains most of the system:
 
-- `localStorage` stores a few numbers per show, not a library.
+- `localStorage` stores a list of episode numbers per show, not a library.
 - A backup file is small, and contains nothing TMDB can say again.
 - The Postgres table is one narrow row per show, so two devices marking two different shows
   never conflict.

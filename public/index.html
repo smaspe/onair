@@ -165,6 +165,7 @@
                     autocomplete="email"
                     placeholder="you@example.com"
                     required
+                    x-init="$nextTick(() => $el.focus())"
                   />
                 </label>
                 <label>
@@ -237,6 +238,9 @@
                 <b x-text="row.name"></b>
                 <span x-text="`${row.year} · ${row.seasonTotal ?? '?'} seasons`"></span>
               </span>
+              <!-- A result you already track, so that searching for a show twice does not read
+               as having never added it. -->
+              <span class="has" x-show="$store.library.shows[row.id]">On your shelf</span>
             </button>
           </template>
         </div>

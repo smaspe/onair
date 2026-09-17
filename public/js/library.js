@@ -46,6 +46,15 @@ export const library = {
     });
   },
 
+  // Signing out leaves the device with nothing of that account on it. The table keeps the
+  // library, and signing in again brings it back.
+  forget() {
+    this.shows = {};
+    this.waiting = {};
+    saveShows(this.shows);
+    saveWaiting(this.waiting);
+  },
+
   // Whether the table took the change, and what to do again if it did not.
   settle(id, took, how) {
     if (took) delete this.waiting[id];
@@ -153,10 +162,6 @@ export const library = {
 
   async refresh() {
     await Promise.all(Object.keys(this.shows).map((id) => this.reload(id)));
-    // A record stored under a single mark gains its set of episodes when TMDB answers with the
-    // season lengths. It is written down at once: rebuilding it from the single mark a second
-    // time would flatten any gap made since.
-    saveShows(this.shows);
   },
 
   // A record carries the episodes of the seasons it was fetched for. A reader who looks at
