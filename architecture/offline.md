@@ -61,18 +61,23 @@ flowchart LR
   nav -->|"a poster"| art["onair-art"]
   nav -->|"Supabase"| net
 
-  shell --> swr["Answer from the copy held,<br/>fetch a newer one for next time"]
-  data --> swr
-  art --> keep["Answer from the copy held,<br/>fetch only the first time"]
+  shell --> keep["Answer from the copy held"]
+  data --> swr["Answer from the copy held,<br/>fetch a newer one for next time"]
+  art --> keep
 ```
 
 **The page itself is answered from the cache, not from the network first.** Asking the network
 first makes opening the app wait for a request to time out at exactly the moment the cache
 exists for.
 
-The cost is one stale load after a deploy. The worker compares the `ETag` of what it fetched
-against the `ETag` of what it held; when they differ it messages the page, and the page offers
-to start again. The page never changes while someone reads it. Cloudflare serves an `ETag` that is a
+The whole shell is read again as one set, or not at all, so a load draws one deploy and never a
+mix of two.
+
+The cost is one stale load after a deploy. A page asks the worker to check when it opens, and
+again whenever the reader comes back to the tab. The worker reads the `ETag` of one file of the
+shell and compares it against the tag the cache was built from. When they differ it reads the
+whole shell again, and only then messages the pages, so the reload a page offers serves the new
+deploy. The page never changes while someone reads it. Cloudflare serves an `ETag` that is a
 hash of the file, so this needs no version number and no build step to write one.
 
 A search is not cached. It is typed once and the answer is never wanted again.

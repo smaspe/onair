@@ -67,6 +67,9 @@ const shelf = () => ({
   finding: false,
   // A show found by searching, held long enough to look at before deciding to track it.
   preview: null,
+  // Whether the sheet is scrolled far enough that the picture no longer says which show this
+  // is. The sheet sets it as it scrolls, and starts each show with it clear.
+  scrolled: false,
   // Which seasons the reader has opened. Held here, not on the <details>, because the element
   // is rebuilt when its episodes arrive and would otherwise shut itself.
   unfolded: [],
@@ -205,7 +208,8 @@ const shelf = () => ({
       const at = lastWatched(show);
       return at ? `stopped at ${brief(at)}` : "never started";
     }
-    if (state === "finished") return `${totalEpisodes(show)} episodes`;
+    if (state === "finished" || state === "unstarted")
+      return `${totalEpisodes(show)} episodes`;
     return show.network || "still running";
   },
 
@@ -391,6 +395,16 @@ const shelf = () => ({
     this.theme = document.documentElement.dataset.theme || "";
     navigator.serviceWorker?.addEventListener("message", (event) => {
       if (event.data?.onair === "renewed") this.renewed = true;
+    });
+
+    // The worker reads the shell only when a page asks it to. A page asks when it opens, and
+    // again whenever the reader comes back to the tab, which is how a page left open for a
+    // week finds out that the app was deployed again.
+    const look = () =>
+      navigator.serviceWorker?.controller?.postMessage({ onair: "look" });
+    look();
+    addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") look();
     });
     addEventListener("keydown", (event) => {
       if (event.key === "Escape") this.shut();

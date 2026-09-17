@@ -25,13 +25,27 @@ const FILES = [
   "/js/model/recommend.js",
 ];
 
+// The tag of the file that stands for the deploy, stored beside the files it was read with.
+const BUILT = "/__built";
+
+// One file answers for the whole shell. A deploy replaces every file at the same time, so the
+// tag of any one of them says which deploy the other files came from.
+const WITNESS = "/shelf.js";
+
+const tagOf = (response) =>
+  response.headers.get("etag") ?? response.headers.get("last-modified");
+
+// Read every file of the shell, and record the deploy they came from. They are replaced
+// together, so a load draws one deploy and never a mix of two.
+const build = async () => {
+  const cache = await caches.open(SHELL);
+  await cache.addAll(FILES);
+  const witness = await cache.match(WITNESS);
+  await cache.put(BUILT, new Response((witness && tagOf(witness)) ?? ""));
+};
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL)
-      .then((cache) => cache.addAll(FILES))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(build().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {
@@ -51,20 +65,43 @@ self.addEventListener("activate", (event) => {
 // cannot look at. It still replays, which is all a held copy has to do.
 const usable = (response) => response.ok || response.type === "opaque";
 
-// A file is the same file when the server gives it the same tag. Two copies that each have a
-// tag, and have different tags, are two versions of the page.
-const differs = (held, fresh) => {
-  const before = held.headers.get("etag") ?? held.headers.get("last-modified");
-  const after = fresh.headers.get("etag") ?? fresh.headers.get("last-modified");
-  return Boolean(before && after && before !== after);
-};
-
 // The page is already drawn from the copy that was held, so it is the old one. Say so, and it
 // can offer to start again.
 const announce = async () => {
   const pages = await self.clients.matchAll();
   pages.forEach((page) => page.postMessage({ onair: "renewed" }));
 };
+
+// Ask the server which deploy it serves. A different one is read in full before any page hears
+// about it, so the reload a page offers gives the reader that deploy.
+const renew = async () => {
+  try {
+    const fresh = await fetch(WITNESS, { cache: "no-cache" });
+    if (!fresh.ok) return;
+    const tag = tagOf(fresh);
+    // A server that gives no tag says nothing about which deploy this is. Silence is the only
+    // honest answer.
+    if (!tag) return;
+
+    const cache = await caches.open(SHELL);
+    const built = await cache.match(BUILT);
+    const was = built && (await built.text());
+    if (was === tag) return;
+
+    await build();
+    // A shell read from a server that gave no tag cannot say which deploy it came from, so the
+    // first tag it learns is recorded and no page is told that it runs an old one.
+    if (was) await announce();
+  } catch {
+    /* no network: the pages keep the deploy they have */
+  }
+};
+
+// A page asks when it opens and whenever the reader comes back to it. Nothing else asks, so a
+// page that stays open for a week finds out, and a page nobody looks at costs no requests.
+self.addEventListener("message", (event) => {
+  if (event.data?.onair === "look") event.waitUntil(renew());
+});
 
 // Answer from what is held and ask for a newer copy at the same time. The page draws at once,
 // and the newer copy is what the next load is built from.
@@ -73,9 +110,7 @@ const freshen = (event, name) =>
     const held = await cache.match(event.request);
     const asked = fetch(event.request)
       .then((response) => {
-        if (!usable(response)) return response;
-        if (held && differs(held, response)) announce();
-        cache.put(event.request, response.clone());
+        if (usable(response)) cache.put(event.request, response.clone());
         return response;
       })
       .catch(() => held);
@@ -101,11 +136,13 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
 
-  // The page is answered from what is held, like every other file it is made of. Asking the
-  // network first would make opening the app wait for a request to time out whenever there is
-  // no network, which is the moment this cache exists for.
-  if (event.request.mode === "navigate") {
-    event.respondWith(freshen(event, SHELL));
+  // The page and the files it is made of are answered from what is held, and they change only
+  // when the whole shell is read again. Asking the network first would make opening the app
+  // wait for a request to time out whenever there is no network, which is the moment this
+  // cache exists for.
+  const own = url.origin === self.location.origin;
+  if (event.request.mode === "navigate" || (own && FILES.includes(url.pathname))) {
+    event.respondWith(kept(event, SHELL));
     return;
   }
 
@@ -121,7 +158,7 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else on another origin is the account and the table it syncs with. Neither
   // answer is worth keeping.
-  if (url.origin !== self.location.origin) return;
+  if (!own) return;
 
   if (url.pathname.startsWith("/api/")) {
     // A search is typed once and the answer is never wanted again.

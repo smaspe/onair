@@ -359,15 +359,26 @@
     <template x-if="show">
       <div>
         <div class="scrim" @click="shut()"></div>
-        <aside class="sheet" aria-label="Show details">
+        <aside
+          class="sheet"
+          aria-label="Show details"
+          :class="{ scrolled }"
+          x-init="scrolled = false"
+          @scroll="scrolled = $el.scrollTop > 140"
+        >
+          <!-- The close button keeps its place while the sheet scrolls. The name joins it once
+           the picture has gone behind the text, so the sheet always says which show it is
+           about. The heading below states the name as well, so a screen reader is given this
+           copy to skip. -->
+          <button class="shut" @click="shut()" aria-label="Close">✕</button>
+          <div class="crown" aria-hidden="true" x-text="title(show)"></div>
+
           <!-- The poster fills the head of the sheet, so the thing you clicked is still the
            thing you are looking at. -->
           <div
             class="hero"
             :style="`--hue:${hue(show)};${hero(show) ? `background-image:url('${hero(show)}')` : ''}`"
           >
-            <button class="shut" @click="shut()" aria-label="Close">✕</button>
-
             <!-- The network's mark keeps its own colours, so it sits on a plate of its own in
              the far corner rather than on the picture beside the words. -->
             <template x-if="logo(show)">

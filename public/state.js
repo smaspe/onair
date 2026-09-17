@@ -1,10 +1,16 @@
-import { episodesBehind, isEnded } from "./js/model/progress.js";
+import {
+  episodesBehind,
+  episodesWatched,
+  isEnded,
+} from "./js/model/progress.js";
 
-// Every state a tracked show can be in. Having nothing to watch is three of them, because a
-// date for the next episode, a running show with no date, and a show that is over each ask
-// something different of the watcher.
+// Every state a tracked show can be in. Having something to watch is two of them, because a
+// show you are part way through and a show you have never opened are different decisions.
+// Having nothing to watch is three, because a date for the next episode, a running show with
+// no date, and a show that is over each ask something different of the watcher.
 export const STATES = [
   { key: "available", label: "Available", said: "aired, and you have not seen it" },
+  { key: "unstarted", label: "Not started", said: "you have watched none of it" },
   { key: "comingUp", label: "Coming up", said: "a date for the next one" },
   { key: "caughtUp", label: "Caught up", said: "still running, no date yet" },
   { key: "finished", label: "Finished", said: "the show is over" },
@@ -13,7 +19,10 @@ export const STATES = [
 
 export const stateOf = (show) => {
   if (show.dropped) return "dropped";
-  if (episodesBehind(show)) return "available";
+  // A show with no marks has its own shelf only when it has episodes to watch. A show whose
+  // first episode has not aired yet stays with the shows that wait for a date.
+  if (episodesBehind(show))
+    return episodesWatched(show) ? "available" : "unstarted";
   if (show.upcoming?.length) return "comingUp";
   return isEnded(show) ? "finished" : "caughtUp";
 };
