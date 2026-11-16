@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Page not found — ONAIR</title>
+    <meta name="theme-color" content="#f4f6f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1214" media="(prefers-color-scheme: dark)" />
+
+    <!-- Cloudflare serves this file for an unknown path at any depth, so each address in this
+     file starts at the root. -->
+    <link rel="icon" href="/mark.svg" />
+
+    <!-- The styles are in this file, so the page needs no other request to draw its text. The
+     colours are the tokens of shelf.css. The page runs no script: it follows the theme of the
+     system and does not read the theme that a reader selects in the app. -->
+    <style>
+      :root {
+        color-scheme: light dark;
+        --ground: #f4f6f7;
+        --panel: #ffffff;
+        --rule: #dbe1e5;
+        --ink: #11171a;
+        --mute: #6a7c85;
+        --accent: #1d3e77;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ground: #0f1214;
+          --panel: #171c1f;
+          --rule: #262f34;
+          --ink: #e9eef0;
+          --mute: #8797a0;
+          --accent: #8fb4ea;
+        }
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--ground);
+        color: var(--ink);
+        font: 400 15px/1.55 "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+      }
+      :focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+      .wrap { width: min(100% - 2.5rem, 68rem); margin-inline: auto; }
+
+      header { border-bottom: 1px solid var(--rule); background: var(--panel); }
+      .logo {
+        display: flex; align-items: center; gap: 0.5rem; padding: 1rem 0 0.85rem;
+        font-size: 0.95rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+      }
+      .logo img { width: 1.3rem; height: 1.3rem; }
+
+      main { padding: 3rem 0 4rem; text-align: center; }
+      .caps {
+        margin: 0;
+        font-size: 0.68rem; font-weight: 600; letter-spacing: 0.13em;
+        text-transform: uppercase; color: var(--mute);
+      }
+      h1 {
+        margin: 0.5rem 0 1.6rem;
+        font-size: 1.5rem; font-weight: 600; line-height: 1.25; text-wrap: balance;
+      }
+      a {
+        display: inline-block; padding: 0.6rem 0.9rem;
+        border: 1px solid var(--accent); border-radius: 6px;
+        color: var(--accent); font-size: 0.87rem; font-weight: 500; text-decoration: none;
+      }
+      a:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <div class="wrap logo"><img src="/mark.svg" alt="" />ONAIR</div>
+    </header>
+
+    <main class="wrap">
+      <p class="caps">Error 404</p>
+      <h1>Nothing is at this address.</h1>
+      <a href="/">Go to the ONAIR shelf</a>
+    </main>
+  </body>
+</html>
