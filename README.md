@@ -67,7 +67,24 @@ key in `.dev.vars`, which git ignores:
 TMDB_KEY=your-tmdb-v3-key
 ```
 
+The sync routes store their rows in a D1 database. Wrangler keeps a local one under
+`.wrangler/`, and the table has to be made in it once:
+
+```bash
+npx wrangler d1 migrations apply onair --local
+```
+
 Deployed at <https://onair.smaspe.workers.dev>. See `cloudflare.md`.
+
+### Tests
+
+```bash
+npm run test
+```
+
+The tests run on `node --test` and have no dependency. They need Node 22.13 or later: the
+Worker's routes are tested against the SQLite that Node contains, built from the file in
+`migrations/`.
 
 ### The service worker while you work
 

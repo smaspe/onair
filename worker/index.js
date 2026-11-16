@@ -1,7 +1,10 @@
-// The TMDB proxy. It holds the key and forwards a fixed list of paths.
+// The TMDB proxy, and the sync routes in front of it. The proxy holds the key and forwards a
+// fixed list of paths.
 //
 // Every other request on this site matches a static file and never reaches this code:
 // wrangler.jsonc runs the Worker first only for /api/*.
+
+import { sync } from "./sync.js";
 
 const TMDB = "https://api.themoviedb.org/3";
 
@@ -44,10 +47,13 @@ const fail = (status, message) =>
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/sync" || url.pathname.startsWith("/api/sync/"))
+      return sync(request, env.onair);
+
     if (request.method !== "GET") return fail(405, "GET only");
     if (!env.TMDB_KEY) return fail(500, "no TMDB key on this Worker");
 
-    const url = new URL(request.url);
     const path = url.pathname.slice("/api".length);
     const route = ROUTES.find((candidate) => candidate.path.test(path));
     if (!route) return fail(404, "not a route this proxy forwards");

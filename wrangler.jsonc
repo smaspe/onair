@@ -18,5 +18,14 @@
   // runs, so a popular show costs one TMDB call per data centre per TTL.
   "cache": {
     "enabled": true
-  }
+  },
+
+  // The rows of every library. The id of the database is not written here: wrangler finds the
+  // database by its name when it deploys and when it applies a migration.
+  "d1_databases": [
+    {
+      "binding": "onair",
+      "database_name": "onair"
+    }
+  ]
 }
