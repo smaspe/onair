@@ -141,17 +141,13 @@ self.addEventListener("fetch", (event) => {
   // cache exists for.
   //
   // The page has one address, `/`, and a query string does not make it another page: a
-  // navigation to `/` is answered by the entry for `/`. A navigation to any other path is not
-  // answered here, so the browser asks the server and an unknown path gets its 404. No
-  // navigation is stored: the shell reads only its own files again, so no deploy replaces an
-  // entry that a navigation adds.
+  // navigation to `/` is answered by the entry for `/`. A miss goes to the network and is not
+  // stored, because the shell reads only its own files again. A navigation to any other path
+  // is not answered here, so the browser asks the server and an unknown path gets its 404.
   if (event.request.mode === "navigate") {
     if (url.pathname !== "/") return;
     event.respondWith(
-      caches
-        .open(SHELL)
-        .then((cache) => cache.match("/"))
-        .then((held) => held ?? fetch(event.request)),
+      caches.match("/", { cacheName: SHELL }).then((held) => held ?? fetch(event.request)),
     );
     return;
   }
