@@ -8,7 +8,6 @@ const KEEP = [SHELL, DATA, ART];
 
 const FILES = [
   "/",
-  "/index.html",
   "/shelf.css",
   "/shelf.js",
   "/state.js",
