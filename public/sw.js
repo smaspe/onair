@@ -64,7 +64,12 @@ self.addEventListener("activate", (event) => {
 
 // A stylesheet from another origin answers opaquely: no status to read, and a body this code
 // cannot look at. It still replays, which is all a held copy has to do.
-const usable = (response) => response.ok || response.type === "opaque";
+//
+// An answer that says `no-store` is not held. The rows of a library say so: they belong to one
+// sync code and change with every write, and a held copy would answer the next code that asks.
+const usable = (response) =>
+  (response.ok || response.type === "opaque") &&
+  !/\bno-store\b/.test(response.headers.get("cache-control") ?? "");
 
 // The page is already drawn from the copy that was held, so it is the old one. Say so, and it
 // can offer to start again.
@@ -163,9 +168,6 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) {
     // A search is typed once and the answer is never wanted again.
     if (url.pathname.startsWith("/api/search/")) return;
-    // The rows of a library belong to one sync code and change with every write. A stored copy
-    // would answer another code, and would state rows that are no longer the newest.
-    if (url.pathname.startsWith("/api/sync")) return;
     event.respondWith(freshen(event, DATA));
     return;
   }

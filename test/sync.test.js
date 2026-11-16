@@ -239,15 +239,15 @@ test("a body over 32 KB is refused", async () => {
   const { binding } = openDatabase();
   const episodes = (count) => Array.from({ length: count }, (_, at) => at + 1);
 
-  const large = await call(binding, "PUT", "/api/sync/1399", {
+  const over = await call(binding, "PUT", "/api/sync/1399", {
     body: progress({ watched: { 1: episodes(9000) } }),
   });
-  const long = await call(binding, "PUT", "/api/sync/1399", {
+  const under = await call(binding, "PUT", "/api/sync/1399", {
     body: progress({ watched: { 1: episodes(5000) } }),
   });
 
-  assert.equal(large.status, 413);
-  assert.equal(long.status, 200);
+  assert.equal(over.status, 413);
+  assert.equal(under.status, 200);
 });
 
 test("a library takes 1,000 rows and no more", async () => {
@@ -258,11 +258,13 @@ test("a library takes 1,000 rows and no more", async () => {
   for (let id = 1; id <= 1000; id += 1) insert.run(libraryOf(ALICE), id);
 
   const extra = await call(binding, "PUT", "/api/sync/1001", { body: progress() });
-  const held = await call(binding, "PUT", "/api/sync/1000", { body: progress({ base: 1 }) });
+  const existing = await call(binding, "PUT", "/api/sync/1000", {
+    body: progress({ base: 1 }),
+  });
   const other = await call(binding, "PUT", "/api/sync/1001", { code: BOB, body: progress() });
 
   assert.equal(extra.status, 507);
-  assert.equal(held.status, 200);
+  assert.equal(existing.status, 200);
   assert.equal(other.status, 200);
 });
 

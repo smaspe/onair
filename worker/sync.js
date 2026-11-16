@@ -16,8 +16,8 @@ const CODE = /^Bearer ([0-9A-HJKMNP-TV-Z]{25})$/;
 const MAX_ROWS = 1000;
 const MAX_BODY = 32 * 1024;
 
-// The cache in front of the Worker and the cache of the browser store no answer of these
-// routes. The service worker does not read this header: public/sw.js leaves these paths alone.
+// No cache stores an answer of these routes. The cache in front of the Worker, the browser and
+// the service worker in public/sw.js each read this header.
 const answer = (status, body) =>
   new Response(JSON.stringify(body), {
     status,
@@ -66,14 +66,15 @@ const isDate = (value) =>
 
 const isRating = (value) => Number.isInteger(value) && value >= 1 && value <= 10;
 
-// What a body asks to store, or nothing when any part of it has the wrong shape.
+// What a body asks to store, as the columns of the row, and the `updated_at` its sender last
+// saw. Nothing when any part of the body has the wrong shape.
 const changeOf = (body) => {
   if (!isObject(body)) return null;
   const { base = null } = body;
   if (base !== null && !(Number.isSafeInteger(base) && base >= 0)) return null;
 
   if (body.deleted === true)
-    return { base, watched: "{}", markedAt: null, rating: null, dropped: 0, deleted: 1 };
+    return { base, watched: "{}", marked_at: null, rating: null, dropped: 0, deleted: 1 };
 
   const marks = marksOf(body.watched);
   const { markedAt = null, rating = null, dropped } = body;
@@ -84,7 +85,7 @@ const changeOf = (body) => {
   return {
     base,
     watched: JSON.stringify(marks),
-    markedAt,
+    marked_at: markedAt,
     rating,
     dropped: Number(dropped),
     deleted: 0,
@@ -99,15 +100,18 @@ const jsonOf = (bytes) => {
   }
 };
 
+// Every column that an answer states. The hash of the code stays in the database.
+const COLUMNS = "show_id, watched, marked_at, rating, dropped, deleted, updated_at";
+
 const find = (database, library, id) =>
   database
-    .prepare("select * from progress where library = ?1 and show_id = ?2")
+    .prepare(`select ${COLUMNS} from progress where library = ?1 and show_id = ?2`)
     .bind(library, id)
     .first();
 
 const read = async (database, library) => {
   const { results } = await database
-    .prepare("select * from progress where library = ?1")
+    .prepare(`select ${COLUMNS} from progress where library = ?1`)
     .bind(library)
     .all();
   return answer(200, { rows: results.map(rowOf) });
@@ -115,15 +119,17 @@ const read = async (database, library) => {
 
 const write = async (database, library, id, request) => {
   const bytes = await request.arrayBuffer();
-  if (bytes.byteLength > MAX_BODY) return refuse(413, "the body is over 32 KB");
+  if (bytes.byteLength > MAX_BODY)
+    return refuse(413, `the body is over ${MAX_BODY / 1024} KB`);
   const change = changeOf(jsonOf(bytes));
   if (!change) return refuse(400, "the body is not the progress of one show");
+  const { base, ...columns } = change;
 
   const stored = await find(database, library, id);
 
   // A caller that has not seen the row as it is would write over a change it does not know.
   // The row goes back to it, and it decides what to send.
-  if (stored && (change.base === null || stored.updated_at > change.base))
+  if (stored && (base === null || stored.updated_at > base))
     return answer(409, { row: rowOf(stored) });
 
   if (!stored) {
@@ -136,11 +142,7 @@ const write = async (database, library, id, request) => {
 
   const next = {
     show_id: id,
-    watched: change.watched,
-    marked_at: change.markedAt,
-    rating: change.rating,
-    dropped: change.dropped,
-    deleted: change.deleted,
+    ...columns,
     // The clock of the Worker orders the writes, so a device with a wrong clock cannot win.
     // Two writes in the same millisecond still get two different values.
     updated_at: Math.max(Date.now(), (stored?.updated_at ?? 0) + 1),
