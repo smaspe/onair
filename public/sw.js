@@ -129,6 +129,12 @@ const kept = (event, name) =>
     return response;
   });
 
+// For the page and the files it is made of. The entry for a path answers every request for
+// that path, whatever its query string. A miss goes to the network and is not stored: the
+// shell reads only its own files again, so no deploy replaces an entry that a request adds.
+const shell = (event, path) =>
+  caches.match(path, { cacheName: SHELL }).then((held) => held ?? fetch(event.request));
+
 const IMMUTABLE = ["esm.sh", "fonts.gstatic.com", "fonts.googleapis.com"];
 
 self.addEventListener("fetch", (event) => {
@@ -141,20 +147,16 @@ self.addEventListener("fetch", (event) => {
   // cache exists for.
   //
   // The page has one address, `/`, and a query string does not make it another page: a
-  // navigation to `/` is answered by the entry for `/`. A miss goes to the network and is not
-  // stored, because the shell reads only its own files again. A navigation to any other path
-  // is not answered here, so the browser asks the server and an unknown path gets its 404.
+  // navigation to `/` is answered by the entry for `/`. A navigation to any other path is not
+  // answered here, so the browser asks the server and an unknown path gets its 404.
   if (event.request.mode === "navigate") {
-    if (url.pathname !== "/") return;
-    event.respondWith(
-      caches.match("/", { cacheName: SHELL }).then((held) => held ?? fetch(event.request)),
-    );
+    if (url.pathname === "/") event.respondWith(shell(event, "/"));
     return;
   }
 
   const own = url.origin === self.location.origin;
   if (own && FILES.includes(url.pathname)) {
-    event.respondWith(kept(event, SHELL));
+    event.respondWith(shell(event, url.pathname));
     return;
   }
 
