@@ -145,20 +145,15 @@ self.addEventListener("fetch", (event) => {
   // when the whole shell is read again. Asking the network first would make opening the app
   // wait for a request to time out whenever there is no network, which is the moment this
   // cache exists for.
-  //
-  // The page has one address, `/`, and a query string does not make it another page: a
-  // navigation to `/` is answered by the entry for `/`. A navigation to any other path is not
-  // answered here, so the browser asks the server and an unknown path gets its 404.
-  if (event.request.mode === "navigate") {
-    if (url.pathname === "/") event.respondWith(shell(event, "/"));
-    return;
-  }
-
   const own = url.origin === self.location.origin;
   if (own && FILES.includes(url.pathname)) {
     event.respondWith(shell(event, url.pathname));
     return;
   }
+
+  // A navigation to a path that is not a file of the shell is not answered here, so the
+  // browser asks the server and an unknown path gets its 404.
+  if (event.request.mode === "navigate") return;
 
   if (url.hostname === "image.tmdb.org") {
     event.respondWith(kept(event, ART));
