@@ -100,15 +100,12 @@ const changeOf = (body) => {
 // so a body of any size costs the Worker the limit and no more.
 const textOf = async (request) => {
   const decoder = new TextDecoder();
-  const reader = request.body?.getReader();
-  let [text, size] = ["", 0];
-  for (let part = await reader?.read(); part && !part.done; part = await reader.read()) {
-    size += part.value.byteLength;
-    if (size > MAX_BODY) {
-      await reader.cancel();
-      return null;
-    }
-    text += decoder.decode(part.value, { stream: true });
+  let text = "";
+  let size = 0;
+  for await (const part of request.body ?? []) {
+    size += part.byteLength;
+    if (size > MAX_BODY) return null;
+    text += decoder.decode(part, { stream: true });
   }
   return text + decoder.decode();
 };
