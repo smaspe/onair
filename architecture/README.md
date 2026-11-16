@@ -50,6 +50,7 @@ and clears nothing.
 | [user-data.md](user-data.md) | Anonymous and signed in, the schema, the merge rules |
 | [offline.md](offline.md) | Reading with no network, and writes that have not been sent |
 | [episode-order.md](episode-order.md) | A note: the order of a series depends on who showed it |
+| [email.md](email.md) | What Supabase sends, what a provider must allow, and the steps to set one up |
 | [recommendations.md](recommendations.md) | How a suggestion is scored, and how it says why |
 | [roadmap.md](roadmap.md) | What was built, in what order, and what is left |
 
