@@ -140,8 +140,25 @@ self.addEventListener("fetch", (event) => {
   // when the whole shell is read again. Asking the network first would make opening the app
   // wait for a request to time out whenever there is no network, which is the moment this
   // cache exists for.
+  //
+  // The page has one address, `/`, and a query string does not make it another page: a
+  // navigation to `/` is answered by the entry for `/`. A navigation to any other path is not
+  // answered here, so the browser asks the server and an unknown path gets its 404. No
+  // navigation is stored: the shell reads only its own files again, so no deploy replaces an
+  // entry that a navigation adds.
+  if (event.request.mode === "navigate") {
+    if (url.pathname !== "/") return;
+    event.respondWith(
+      caches
+        .open(SHELL)
+        .then((cache) => cache.match("/"))
+        .then((held) => held ?? fetch(event.request)),
+    );
+    return;
+  }
+
   const own = url.origin === self.location.origin;
-  if (event.request.mode === "navigate" || (own && FILES.includes(url.pathname))) {
+  if (own && FILES.includes(url.pathname)) {
     event.respondWith(kept(event, SHELL));
     return;
   }
