@@ -163,6 +163,9 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/api/")) {
     // A search is typed once and the answer is never wanted again.
     if (url.pathname.startsWith("/api/search/")) return;
+    // The rows of a library belong to one sync code and change with every write. A stored copy
+    // would answer another code, and would state rows that are no longer the newest.
+    if (url.pathname.startsWith("/api/sync")) return;
     event.respondWith(freshen(event, DATA));
     return;
   }

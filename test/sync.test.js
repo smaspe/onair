@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
+import worker from "../worker/index.js";
 import { sync } from "../worker/sync.js";
 import { openDatabase } from "./d1.js";
 
@@ -279,6 +280,24 @@ test("anything that is not one of the two routes is refused", async () => {
   assert.equal((await call(binding, "DELETE", "/api/sync")).status, 405);
   assert.equal((await call(binding, "GET", "/api/sync/1399")).status, 405);
   assert.equal((await call(binding, "DELETE", "/api/sync/1399")).status, 405);
+});
+
+test("the Worker gives the sync paths to the sync routes, and no other path", async () => {
+  const { binding } = openDatabase();
+  const put = (path) =>
+    worker.fetch(
+      new Request(`https://onair.test${path}`, {
+        method: "PUT",
+        headers: { authorization: `Bearer ${ALICE}` },
+        body: JSON.stringify(progress()),
+      }),
+      { onair: binding },
+    );
+
+  assert.equal((await put("/api/sync/1399")).status, 200);
+  // The proxy refuses the method. The sync routes would refuse the path, with a 404.
+  assert.equal((await put("/api/synchronise")).status, 405);
+  assert.equal((await put("/api/tv/1399")).status, 405);
 });
 
 test("a database that fails gives an answer that no cache stores", async () => {

@@ -16,8 +16,8 @@ const CODE = /^Bearer ([0-9A-HJKMNP-TV-Z]{25})$/;
 const MAX_ROWS = 1000;
 const MAX_BODY = 32 * 1024;
 
-// No cache stores an answer of these routes: not the cache in front of the Worker, not the
-// browser, not the service worker.
+// The cache in front of the Worker and the cache of the browser store no answer of these
+// routes. The service worker does not read this header: public/sw.js leaves these paths alone.
 const answer = (status, body) =>
   new Response(JSON.stringify(body), {
     status,
@@ -91,13 +91,11 @@ const changeOf = (body) => {
   };
 };
 
-const bodyOf = async (request) => {
-  const bytes = await request.arrayBuffer();
-  if (bytes.byteLength > MAX_BODY) return { tooLarge: true };
+const jsonOf = (bytes) => {
   try {
-    return { change: changeOf(JSON.parse(new TextDecoder().decode(bytes))) };
+    return JSON.parse(new TextDecoder().decode(bytes));
   } catch {
-    return { change: null };
+    return null;
   }
 };
 
@@ -116,8 +114,9 @@ const read = async (database, library) => {
 };
 
 const write = async (database, library, id, request) => {
-  const { tooLarge, change } = await bodyOf(request);
-  if (tooLarge) return refuse(413, "the body is over 32 KB");
+  const bytes = await request.arrayBuffer();
+  if (bytes.byteLength > MAX_BODY) return refuse(413, "the body is over 32 KB");
+  const change = changeOf(jsonOf(bytes));
   if (!change) return refuse(400, "the body is not the progress of one show");
 
   const stored = await find(database, library, id);
@@ -128,16 +127,24 @@ const write = async (database, library, id, request) => {
     return answer(409, { row: rowOf(stored) });
 
   if (!stored) {
-    const { held } = await database
-      .prepare("select count(*) as held from progress where library = ?1")
+    const { count } = await database
+      .prepare("select count(*) as count from progress where library = ?1")
       .bind(library)
       .first();
-    if (held >= MAX_ROWS) return refuse(507, "this library is full");
+    if (count >= MAX_ROWS) return refuse(507, "this library is full");
   }
 
-  // The clock of the Worker orders the writes, so a device with a wrong clock cannot win. Two
-  // writes in the same millisecond still get two different values.
-  const updatedAt = Math.max(Date.now(), (stored?.updated_at ?? 0) + 1);
+  const next = {
+    show_id: id,
+    watched: change.watched,
+    marked_at: change.markedAt,
+    rating: change.rating,
+    dropped: change.dropped,
+    deleted: change.deleted,
+    // The clock of the Worker orders the writes, so a device with a wrong clock cannot win.
+    // Two writes in the same millisecond still get two different values.
+    updated_at: Math.max(Date.now(), (stored?.updated_at ?? 0) + 1),
+  };
 
   // The row changes only when it is still the row that was read above. A second write that
   // arrives between the read and this statement changes no row, and is answered as a conflict.
@@ -157,37 +164,37 @@ const write = async (database, library, id, request) => {
     )
     .bind(
       library,
-      id,
-      change.watched,
-      change.markedAt,
-      change.rating,
-      change.dropped,
-      change.deleted,
-      updatedAt,
+      next.show_id,
+      next.watched,
+      next.marked_at,
+      next.rating,
+      next.dropped,
+      next.deleted,
+      next.updated_at,
       stored?.updated_at ?? null,
     )
     .run();
 
-  const row = rowOf(await find(database, library, id));
-  return answer(meta.changes ? 200 : 409, { row });
+  if (meta.changes) return answer(200, { row: rowOf(next) });
+  return answer(409, { row: rowOf(await find(database, library, id)) });
 };
 
 export const sync = async (request, database) => {
   const url = new URL(request.url);
-  const whole = url.pathname === "/api/sync";
   const show = SHOW.exec(url.pathname);
 
-  if ((!whole && !show) || url.search) return refuse(404, "not a sync route");
-  if (request.method !== (whole ? "GET" : "PUT"))
-    return refuse(405, whole ? "GET only" : "PUT only");
+  if ((url.pathname !== "/api/sync" && !show) || url.search)
+    return refuse(404, "not a sync route");
+  const method = show ? "PUT" : "GET";
+  if (request.method !== method) return refuse(405, `${method} only`);
 
   const library = await libraryOf(request);
   if (!library) return refuse(401, "no sync code");
 
   try {
-    return whole
-      ? await read(database, library)
-      : await write(database, library, Number(show[1]), request);
+    return show
+      ? await write(database, library, Number(show[1]), request)
+      : await read(database, library);
   } catch (failure) {
     console.error("onair: sync failed —", failure.message);
     return refuse(500, "the library could not be reached");
