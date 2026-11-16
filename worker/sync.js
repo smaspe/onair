@@ -54,15 +54,19 @@ const marksOf = (watched) => {
   if (!isObject(watched)) return null;
   const marks = {};
   for (const [season, episodes] of Object.entries(watched)) {
-    if (!/^\d{1,4}$/.test(season) || !Array.isArray(episodes)) return null;
+    // One way to write a season number, so that "01" and "1" are not two seasons.
+    if (!/^(0|[1-9]\d{0,3})$/.test(season) || !Array.isArray(episodes)) return null;
     if (!episodes.every((episode) => Number.isInteger(episode) && episode > 0)) return null;
     if (episodes.length) marks[season] = [...new Set(episodes)].sort((a, b) => a - b);
   }
   return marks;
 };
 
+// The form `Date.prototype.toISOString` writes. Two such times are in order as text.
 const isDate = (value) =>
-  typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+  typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) &&
+  !Number.isNaN(Date.parse(value));
 
 const isRating = (value) => Number.isInteger(value) && value >= 1 && value <= 10;
 
@@ -92,9 +96,26 @@ const changeOf = (body) => {
   };
 };
 
-const jsonOf = (bytes) => {
+// The text of a body, or nothing when the body is over the limit. The read stops at the limit,
+// so a body of any size costs the Worker the limit and no more.
+const textOf = async (request) => {
+  const decoder = new TextDecoder();
+  const reader = request.body?.getReader();
+  let [text, size] = ["", 0];
+  for (let part = await reader?.read(); part && !part.done; part = await reader.read()) {
+    size += part.value.byteLength;
+    if (size > MAX_BODY) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(part.value, { stream: true });
+  }
+  return text + decoder.decode();
+};
+
+const jsonOf = (text) => {
   try {
-    return JSON.parse(new TextDecoder().decode(bytes));
+    return JSON.parse(text);
   } catch {
     return null;
   }
@@ -118,10 +139,9 @@ const read = async (database, library) => {
 };
 
 const write = async (database, library, id, request) => {
-  const bytes = await request.arrayBuffer();
-  if (bytes.byteLength > MAX_BODY)
-    return refuse(413, `the body is over ${MAX_BODY / 1024} KB`);
-  const change = changeOf(jsonOf(bytes));
+  const text = await textOf(request);
+  if (text === null) return refuse(413, `the body is over ${MAX_BODY / 1024} KB`);
+  const change = changeOf(jsonOf(text));
   if (!change) return refuse(400, "the body is not the progress of one show");
   const { base, ...columns } = change;
 
@@ -185,7 +205,8 @@ export const sync = async (request, database) => {
   const url = new URL(request.url);
   const show = SHOW.exec(url.pathname);
 
-  if ((url.pathname !== "/api/sync" && !show) || url.search)
+  // `url.search` is empty for an address that ends in a bare `?`.
+  if ((url.pathname !== "/api/sync" && !show) || request.url.includes("?"))
     return refuse(404, "not a sync route");
   const method = show ? "PUT" : "GET";
   if (request.method !== method) return refuse(405, `${method} only`);

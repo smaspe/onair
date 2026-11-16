@@ -8,7 +8,8 @@ const MIGRATIONS = new URL("../migrations/", import.meta.url);
 // against the real schema.
 export const openDatabase = () => {
   const sqlite = new DatabaseSync(":memory:");
-  for (const file of readdirSync(MIGRATIONS).sort())
+  const files = readdirSync(MIGRATIONS).filter((file) => file.endsWith(".sql"));
+  for (const file of files.sort())
     sqlite.exec(readFileSync(new URL(file, MIGRATIONS), "utf8"));
 
   const binding = {

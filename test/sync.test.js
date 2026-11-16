@@ -202,6 +202,9 @@ test("a body in the wrong shape is refused", async () => {
     progress({ watched: null }),
     progress({ watched: [1, 2] }),
     progress({ watched: { one: [1] } }),
+    progress({ watched: { "01": [1] } }),
+    progress({ markedAt: "1" }),
+    progress({ markedAt: "2026-11-16" }),
     progress({ watched: { 1: 3 } }),
     progress({ watched: { 1: ["2"] } }),
     progress({ watched: { 1: [0] } }),
@@ -273,6 +276,7 @@ test("anything that is not one of the two routes is refused", async () => {
   const put = (path) => call(binding, "PUT", path, { body: progress() });
 
   assert.equal((await call(binding, "GET", "/api/sync?since=1")).status, 404);
+  assert.equal((await call(binding, "GET", "/api/sync?")).status, 404);
   assert.equal((await put("/api/sync/1399?base=1")).status, 404);
   assert.equal((await put("/api/sync/")).status, 404);
   assert.equal((await put("/api/sync/abc")).status, 404);
